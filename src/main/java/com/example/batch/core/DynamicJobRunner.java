@@ -41,6 +41,7 @@ public class DynamicJobRunner implements CommandLineRunner {
 
         if (jobName == null) {
             log.info("No jobName provided in arguments. Skipping CLI job execution.");
+            log.info("Available jobs: {}", xmlJobParser.getAvailableJobNames());
             return;
         }
 

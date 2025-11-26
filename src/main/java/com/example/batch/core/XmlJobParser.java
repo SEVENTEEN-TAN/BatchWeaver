@@ -101,4 +101,12 @@ public class XmlJobParser {
     public Job getJob(String jobName) {
         return jobRegistry.get(jobName);
     }
+
+    /**
+     * 获取所有可用的 Job 名称
+     * @return Job 名称集合
+     */
+    public java.util.Set<String> getAvailableJobNames() {
+        return jobRegistry.keySet();
+    }
 }
