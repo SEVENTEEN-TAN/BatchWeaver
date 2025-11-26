@@ -1,4 +1,4 @@
-# BatchWeaver
+﻿# BatchWeaver
 
 > 基于 Spring Batch 的 XML 动态编排引擎
 
@@ -26,16 +26,40 @@ mvn clean package -DskipTests
 ```
 
 ### 3. 运行 Job
+
+**方式 1: 使用启动脚本（推荐）**
+
 ```bash
 # Windows
-.\run-job.bat jobName=importJob
+scripts\run-job.bat jobName=importJob
+
+# Linux/Mac (首次需要添加执行权限: chmod +x scripts/run-job.sh)
+./scripts/run-job.sh jobName=importJob
 
 # 传递参数
-.\run-job.bat jobName=importJob date=2024-01-01
+scripts\run-job.bat jobName=importJob date=2024-01-01
 
 # 断点续传
-.\run-job.bat jobName=importJob resume=true
+scripts\run-job.bat jobName=importJob resume=true
 ```
+
+**方式 2: 直接运行 JAR**
+
+```bash
+# 运行指定的 Job
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=importJob
+
+# 不指定 jobName 时，默认运行 demoJob
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar
+```
+
+**方式 3: 从 IDE 直接启动**
+
+在 IntelliJ IDEA 或 Eclipse 中直接运行 `BatchApplication.main()` 方法：
+- 无参数启动：自动运行 `demoJob`（默认 Job）
+- 带参数启动：在运行配置中添加程序参数 `jobName=importJob`
+
+详细说明请查看 [scripts/README.md](scripts/README.md)
 
 ## Job 定义示例
 
@@ -75,11 +99,35 @@ public class FileValidator {
 1个 Step = 1个 Java 类的方法
 ```
 
-## 文档
+## 📚 文档
 
-- **[完整文档](doc/WALKTHROUGH.md)** - 详细的使用指南和 API 说明
-- **[设计文档](doc/JOB_DESIGN.md)** - Job/Step 架构设计和最佳实践
-- **[实施计划](doc/IMPLEMENTATION_PLAN.md)** - 技术方案说明
+### � 档快速入门
+| 文档 | 说明 | 推荐度 |
+|------|------|--------|
+| **[快速参考](doc/QUICK_REFERENCE.md)** | 常用代码片段、配置模板、命令速查 | ⭐⭐⭐⭐⭐ |
+| **[启动脚本说明](scripts/README.md)** | 脚本使用方法、IDE 启动配置 | ⭐⭐⭐⭐ |
+
+### 🏗️ 架构与设计
+| 文档 | 说明 | 推荐度 |
+|------|------|--------|
+| **[代码架构](doc/CODE_ARCHITECTURE.md)** | 深入理解项目实现、核心组件详解 | ⭐⭐⭐⭐⭐ |
+| **[执行流程](doc/EXECUTION_FLOW.md)** | 可视化流程图、断点续传机制 | ⭐⭐⭐⭐ |
+| **[设计文档](doc/JOB_DESIGN.md)** | Job/Step 架构设计和最佳实践 | ⭐⭐⭐⭐ |
+
+### 🔧 配置与扩展
+| 文档 | 说明 | 推荐度 |
+|------|------|--------|
+| **[默认 Job 配置](doc/DEFAULT_JOB_GUIDE.md)** | 如何配置和使用默认 Job | ⭐⭐⭐ |
+| **[实施计划](doc/IMPLEMENTATION_PLAN.md)** | 技术方案和架构决策 | ⭐⭐⭐ |
+
+### 📖 其他文档
+| 文档 | 说明 |
+|------|------|
+| **[文档索引](doc/INDEX.md)** | 按场景查找文档、关键概念速查 |
+| **[完整指南](doc/WALKTHROUGH.md)** | 项目交付文档、验证结果 |
+| **[更新日志](CHANGELOG.md)** | 项目更新记录和新功能说明 |
+
+> 💡 **推荐阅读顺序**: 快速参考 → 代码架构 → 执行流程 → 设计文档
 
 ## 数据库
 
