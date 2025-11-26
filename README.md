@@ -131,17 +131,18 @@ public class FileValidator {
 
 ## 数据库
 
-- **引擎**: H2 (文件模式)
-- **位置**: `./data/batchdb.mv.db`
+- **引擎**: SQL Server 2022
+- **数据库名**: `BatchWeaverDB`
 - **用户表**: `USER_DATA`
 - **元数据**: `BATCH_JOB_INSTANCE`, `BATCH_JOB_EXECUTION`, `BATCH_STEP_EXECUTION`
+- **配置指南**: [SQL Server 配置文档](doc/SQLSERVER_SETUP.md)
 
 ## 技术栈
 
 - Spring Boot 3.2.0
 - Spring Batch 5.x
 - Druid 连接池
-- H2 Database
+- SQL Server 2022
 - JDK 21
 
 ## 示例 Job

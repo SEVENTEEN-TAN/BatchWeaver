@@ -2,15 +2,16 @@ spring:
   application:
     name: batch-scheduler
   datasource:
-    url: jdbc:h2:file:./data/batchdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
-    driver-class-name: org.h2.Driver
+    # SQL Server 2022 配置
+    url: jdbc:sqlserver://localhost:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     username: sa
-    password: ""
+    password: YourStrong@Password
     druid:
-      url: jdbc:h2:file:./data/batchdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=MySQL
-      driver-class-name: org.h2.Driver
+      url: jdbc:sqlserver://localhost:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
+      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
       username: sa
-      password: ""
+      password: YourStrong@Password
       initial-size: 5
       min-idle: 5
       max-active: 20
