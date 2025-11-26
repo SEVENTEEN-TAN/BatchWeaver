@@ -1,8 +1,101 @@
-# BatchWeaver 启动脚本
+# BatchWeaver 脚本目录
 
-本目录包含 BatchWeaver 的启动脚本，支持 Windows 和 Linux/Mac 平台。
+本目录包含 BatchWeaver 的数据库初始化脚本和启动脚本。
 
-## 脚本说明
+## 📋 脚本列表
+
+### 数据库脚本
+
+- `init-sqlserver.sql` - SQL Server 完整初始化脚本（包含业务表和 Spring Batch 系统表）
+- `create-batch-tables-sqlserver.sql` - 单独创建 Spring Batch 系统表
+- `verify-tables.sql` - 验证所有表是否正确创建
+
+### 启动脚本
+
+- `run-job.bat` - Windows 启动脚本
+- `run-job.sh` - Linux/Mac 启动脚本
+
+---
+
+## 🗄️ 数据库初始化
+
+### 步骤 1: 安装 SQL Server 2022
+
+确保已安装 SQL Server 2022，并记录以下信息：
+- 服务器地址: `localhost:1433`
+- 用户名: `sa`
+- 密码: `YourStrong@Password`
+
+### 步骤 2: 运行初始化脚本
+
+**方式 1: 使用 sqlcmd（推荐）**
+
+```bash
+# Windows
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\init-sqlserver.sql
+
+# Linux/Mac
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts/init-sqlserver.sql
+```
+
+**方式 2: 使用 SQL Server Management Studio (SSMS)**
+
+1. 打开 SSMS 并连接到服务器
+2. 打开 `scripts/init-sqlserver.sql` 文件
+3. 点击 "Execute" 运行脚本
+
+### 步骤 3: 验证表创建
+
+```bash
+# 运行验证脚本
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\verify-tables.sql
+```
+
+**预期输出**:
+```
+✓ USER_DATA 表存在
+✓ BATCH_JOB_INSTANCE 表存在
+✓ BATCH_JOB_EXECUTION 表存在
+✓ BATCH_JOB_EXECUTION_PARAMS 表存在
+✓ BATCH_STEP_EXECUTION 表存在
+✓ BATCH_JOB_EXECUTION_CONTEXT 表存在
+✓ BATCH_STEP_EXECUTION_CONTEXT 表存在
+```
+
+### 初始化脚本包含的内容
+
+`init-sqlserver.sql` 会创建：
+
+1. **数据库**: `BatchWeaverDB`
+2. **业务表**: `USER_DATA`（示例表）
+3. **Spring Batch 系统表**:
+   - `BATCH_JOB_INSTANCE` - Job 实例
+   - `BATCH_JOB_EXECUTION` - Job 执行记录
+   - `BATCH_JOB_EXECUTION_PARAMS` - Job 参数
+   - `BATCH_STEP_EXECUTION` - Step 执行记录
+   - `BATCH_JOB_EXECUTION_CONTEXT` - Job 上下文
+   - `BATCH_STEP_EXECUTION_CONTEXT` - Step 上下文
+4. **索引**: 性能优化索引
+5. **测试数据**: 3 条示例数据
+
+### 关于 Spring Batch 系统表
+
+Spring Batch 需要这些系统表来：
+- 记录 Job 和 Step 的执行状态
+- 支持断点续传功能
+- 存储执行参数和上下文
+- 提供执行历史查询
+
+**自动创建 vs 手动创建**:
+
+- **开发环境**: 使用 `initialize-schema: always`，Spring Boot 会自动创建
+- **生产环境**: 建议手动运行 `init-sqlserver.sql`，然后设置 `initialize-schema: never`
+
+详细说明请参考: [Spring Batch 系统表说明](../doc/SPRING_BATCH_TABLES.md)
+
+---
+
+## 🚀 启动脚本说明
 
 ### Windows (run-job.bat)
 

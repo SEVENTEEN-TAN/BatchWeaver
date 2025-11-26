@@ -26,6 +26,8 @@ spring:
       max-pool-prepared-statement-per-connection-size: 20
   batch:
     jdbc:
+      # 开发环境: always (自动创建表)
+      # 生产环境: never (使用 init-sqlserver.sql 手动创建)
       initialize-schema: always
     job:
       enabled: false
