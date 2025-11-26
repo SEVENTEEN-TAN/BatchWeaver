@@ -17,8 +17,11 @@
 ### 1️⃣ 初始化数据库
 
 ```bash
-# 运行初始化脚本（会创建数据库、业务表和 Spring Batch 系统表）
-sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\init-sqlserver.sql
+# 开发环境：运行完整初始化（包含测试数据）
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\init-all.sql
+
+# 生产环境：仅创建表结构（不含测试数据）
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\init-ddl-only.sql
 
 # 验证表创建
 sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\verify-tables.sql

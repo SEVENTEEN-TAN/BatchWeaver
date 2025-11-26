@@ -31,11 +31,19 @@
 **方式 1: 使用 sqlcmd（推荐）**
 
 ```bash
+# 开发环境（包含测试数据）
 # Windows
-sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\init-sqlserver.sql
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\init-all.sql
 
 # Linux/Mac
-sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts/init-sqlserver.sql
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts/init-all.sql
+
+# 生产环境（仅 DDL，不含测试数据）
+# Windows
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\init-ddl-only.sql
+
+# Linux/Mac
+sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts/init-ddl-only.sql
 ```
 
 **方式 2: 使用 SQL Server Management Studio (SSMS)**
@@ -62,9 +70,21 @@ sqlcmd -S localhost -U sa -P YourStrong@Password -i scripts\verify-tables.sql
 ✓ BATCH_STEP_EXECUTION_CONTEXT 表存在
 ```
 
+### 脚本组织结构
+
+脚本已按最佳实践重新组织：
+
+- **DDL 脚本**（`ddl/` 目录）：创建数据库和表结构
+- **DML 脚本**（`dml/` 目录）：插入测试数据
+- **主脚本**：
+  - `init-all.sql` - 完整初始化（DDL + DML）
+  - `init-ddl-only.sql` - 仅 DDL（生产环境）
+
+详细说明请参考：[SQL 脚本组织结构](SQL_SCRIPTS_README.md)
+
 ### 初始化脚本包含的内容
 
-`init-sqlserver.sql` 会创建：
+初始化脚本会创建：
 
 1. **数据库**: `BatchWeaverDB`
 2. **业务表**: `USER_DATA`（示例表）
