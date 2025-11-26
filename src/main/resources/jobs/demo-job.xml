@@ -1,0 +1,3 @@
+<job id="demoJob">
+    <step id="step1" className="com.example.batch.steps.DemoTasklet" methodName="execute"/>
+</job>

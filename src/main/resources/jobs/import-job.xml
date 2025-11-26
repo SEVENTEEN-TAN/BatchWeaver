@@ -1,0 +1,8 @@
+<job id="importJob">
+    <step id="validate" className="com.example.batch.steps.FileValidationTasklet" methodName="execute">
+        <property name="filePath" value="data/input.csv"/>
+    </step>
+    <step id="import" className="com.example.batch.steps.CsvImportTasklet" methodName="execute">
+        <property name="filePath" value="data/input.csv"/>
+    </step>
+</job>
