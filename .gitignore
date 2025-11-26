@@ -9,3 +9,13 @@ target/
 .classpath
 .project
 .DS_Store
+
+# H2 数据库运行时文件
+data/*.mv.db
+data/*.trace.db
+
+# Spec 工作流工具目录
+.spec-workflow/
+
+# 临时文件
+nul
