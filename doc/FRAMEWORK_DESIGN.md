@@ -39,3 +39,21 @@
 ## 扩展性
 - **新增业务**: 编写新的 Service 类 -> 在 XML 中配置新的 Step。
 - **新增流程**: 新建 XML 文件 -> 定义 Steps 顺序。
+
+## 参数传递机制
+- 运行时数据在 Step 间通过 `ExecutionContext` 共享：
+  - Job 级上下文：`jobExecution.getExecutionContext()`，所有 Step 可访问。
+  - Step 级上下文：`stepExecution.getExecutionContext()`，当前 Step 专用。
+- `JobParameters` 用于只读的实例标识与配置（例如 `id`），在运行期间不可修改。
+- 方法签名支持：
+  - 无参方法：`public void method()`（简单逻辑，不访问上下文）
+  - 带上下文方法：`public void method(StepContribution, ChunkContext)`（推荐，用于读写 ExecutionContext 与 JobParameters）
+- 典型用法：
+```
+public void step(StepContribution c, ChunkContext x) {
+  var job = x.getStepContext().getStepExecution().getJobExecution();
+  var ctx = job.getExecutionContext();
+  var id = job.getJobParameters().getLong("id");
+  ctx.put("batchId", id);
+}
+```

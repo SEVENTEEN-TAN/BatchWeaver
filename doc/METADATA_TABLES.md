@@ -324,6 +324,23 @@ WHERE CREATE_TIME < @CutoffDate;
 - **不同参数** = 不同的 `JOB_KEY` = 创建新实例
 - 上下文信息保存在 `EXECUTION_CONTEXT` 表中
 
+## 上下文与参数传递
+- Job 参数：来自 `BATCH_JOB_EXECUTION_PARAMS`，标识实例（如 `id`），只读。
+- 运行时上下文：
+  - `BATCH_JOB_EXECUTION_CONTEXT` 持久化 Job 级 `ExecutionContext`，用于跨 Step 共享。
+  - `BATCH_STEP_EXECUTION_CONTEXT` 持久化 Step 级 `ExecutionContext`，用于失败恢复。
+- 使用建议：
+  - 在 Step 方法签名为 `method(StepContribution, ChunkContext)` 时，读取 `JobParameters` 与写入 `ExecutionContext`。
+  - 传递对象需实现 `Serializable`，以便被持久化到 `*_CONTEXT` 表中。
+- 代码示例（伪代码）：
+```
+var job = chunkContext.getStepContext().getStepExecution().getJobExecution();
+var ctx = job.getExecutionContext();
+var id = job.getJobParameters().getLong("id");
+ctx.put("batchId", id);
+ctx.put("payload", new SerializableDto(...));
+```
+
 ---
 
 ## 最佳实践

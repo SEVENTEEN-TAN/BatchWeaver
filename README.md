@@ -199,6 +199,65 @@ public class MyService {
 java -jar app.jar jobName=myJob
 ```
 
+### Step 参数/对象传递
+
+在本框架中，推荐通过 `ExecutionContext` 在 Step 之间传递运行时数据（对象需可序列化）。业务方法使用如下签名以访问上下文：
+
+```java
+public void method(StepContribution contribution, ChunkContext chunkContext) {
+    var jobExec = chunkContext.getStepContext().getStepExecution().getJobExecution();
+    var ctx = jobExec.getExecutionContext();
+    // 读取只读的 JobParameters
+    var id = jobExec.getJobParameters().getLong("id");
+    // 写入/读取跨 Step 可用的数据
+    ctx.put("key", "value");
+}
+```
+
+示例（对象传递）：
+
+```java
+// 可序列化的载荷
+public class TransferPayload implements java.io.Serializable {
+    private String batchId; private int count;
+    // getters/setters
+}
+
+@Service
+public class TransferService {
+    public void step1Produce(StepContribution c, ChunkContext x) {
+        var job = x.getStepContext().getStepExecution().getJobExecution();
+        var ctx = job.getExecutionContext();
+        var p = new TransferPayload();
+        p.setBatchId(String.valueOf(job.getJobParameters().getLong("id")));
+        p.setCount(10);
+        ctx.put("payload", p);
+    }
+    public void step2Consume(StepContribution c, ChunkContext x) {
+        var ctx = x.getStepContext().getStepExecution().getJobExecution().getExecutionContext();
+        var p = (TransferPayload) ctx.get("payload");
+        if (p != null) { p.setCount(p.getCount() + 5); ctx.put("payload", p); }
+    }
+}
+```
+
+XML 配置：
+
+```xml
+<job id="transferJob">
+  <step id="produce">
+    <className>com.example.batch.service.TransferService</className>
+    <methodName>step1Produce</methodName>
+  </step>
+  <step id="consume">
+    <className>com.example.batch.service.TransferService</className>
+    <methodName>step2Consume</methodName>
+  </step>
+</job>
+```
+
+运行：`java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=transferJob id=10001`
+
 ---
 
 ## 📊 项目结构

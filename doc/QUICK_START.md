@@ -70,6 +70,40 @@ java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=200
 - **现象**: 创建新的 Job 实例，从 Step 1 开始执行
 - **注意**: 需要先删除 `breakpoint_marker.tmp` 文件，否则不会触发失败
 
+### 3. Step 参数/对象传递示例（transferJob）
+使用 `ExecutionContext` 在 Step 间传递数据：
+
+```xml
+<job id="transferJob">
+  <step id="produce">
+    <className>com.example.batch.service.TransferService</className>
+    <methodName>step1Produce</methodName>
+  </step>
+  <step id="consume">
+    <className>com.example.batch.service.TransferService</className>
+    <methodName>step2Consume</methodName>
+  </step>
+</job>
+```
+
+业务方法签名：
+```java
+public void step1Produce(StepContribution c, ChunkContext x) {
+  var job = x.getStepContext().getStepExecution().getJobExecution();
+  var ctx = job.getExecutionContext();
+  ctx.put("note", "from-step1");
+}
+public void step2Consume(StepContribution c, ChunkContext x) {
+  var ctx = x.getStepContext().getStepExecution().getJobExecution().getExecutionContext();
+  var note = (String) ctx.get("note");
+}
+```
+
+运行示例：
+```bash
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=transferJob id=10001
+```
+
 ## 常用命令
 - **打包**: `mvn clean package -DskipTests`
 - **清理**: `mvn clean`
