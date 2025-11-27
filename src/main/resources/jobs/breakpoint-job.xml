@@ -1,0 +1,14 @@
+<job id="breakpointJob">
+    <step id="prepareStep">
+        <className>com.example.batch.service.BreakpointService</className>
+        <methodName>prepare</methodName>
+    </step>
+    <step id="processStep">
+        <className>com.example.batch.service.BreakpointService</className>
+        <methodName>processWithPotentialFailure</methodName>
+    </step>
+    <step id="cleanupStep">
+        <className>com.example.batch.service.BreakpointService</className>
+        <methodName>cleanup</methodName>
+    </step>
+</job>
