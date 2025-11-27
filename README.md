@@ -32,7 +32,7 @@ BatchWeaver 是一个轻量级的 Spring Batch 动态编排框架，通过 **XML
 
 | 技术 | 版本 | 用途 | 评分 |
 |------|------|------|------|
-| **Spring Boot** | 3.2.0 | 应用框架 | ⭐⭐⭐⭐⭐ |
+| **Spring Boot** | 3.5.7 | 应用框架 | ⭐⭐⭐⭐⭐ |
 | **Spring Batch** | 5.x | 批处理框架 | ⭐⭐⭐⭐⭐ |
 | **Java** | 21 | 开发语言（LTS 版本） | ⭐⭐⭐⭐⭐ |
 | **SQL Server** | 2022 | 元数据存储 | ⭐⭐⭐⭐ |
@@ -115,16 +115,16 @@ mvn clean package -DskipTests
 #### 运行 Demo Job（数据流转）
 ```bash
 # 自动生成 ID (新实例)
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=demoJob
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=demoJob
 ```
 
 #### 运行 Breakpoint Job（断点续传）
 ```bash
 # 首次运行（指定 ID，预期失败）
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
 
 # 再次运行（使用相同 ID，自动续传）
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
 ```
 
 ---
@@ -187,7 +187,7 @@ public class MyService {
 ```xml
 <job id="myJob">
     <step id="step1">
-        <className>com.example.batch.service.MyService</className>
+        <className>com.example.batch.job.my.MyService</className>
         <methodName>processData</methodName>
     </step>
 </job>
@@ -247,11 +247,11 @@ XML 配置：
 
 <job id="transferJob">
     <step id="produce">
-        <className>com.example.batch.job.transfer.TransferServicecom.example.batch.job.transfer.TransferService</className>
+        <className>com.example.batch.job.transfer.TransferService</className>
         <methodName>step1Produce</methodName>
     </step>
     <step id="consume">
-        <className>com.example.batch.job.transfer.TransferServicecom.example.batch.job.transfer.TransferService</className>
+        <className>com.example.batch.job.transfer.TransferService</className>
         <methodName>step2Consume</methodName>
     </step>
 </job>
@@ -298,14 +298,25 @@ SpringBatch/
 │   │   └── model/                      # XML 映射模型
 │   ├── components/                     # 组件
 │   │   └── ReflectionTasklet.java     # 反射 Tasklet
-│   └── service/                        # 业务服务
-│       ├── DemoService.java           # 示例服务
-│       └── BreakpointService.java     # 断点续传示例
+│   └── job/                            # 业务 Job 包
+│       ├── demo/                      # Demo 示例
+│       │   └── DemoService.java
+│       ├── breakpoint/                # 断点续传示例
+│       │   └── BreakpointService.java
+│       ├── transfer/                  # Step 参数/对象传递
+│       │   ├── TransferPayload.java
+│       │   └── TransferService.java
+│       └── chunk/                     # Chunk 分批处理
+│           ├── CursorUserReader.java
+│           ├── UppercaseUsernameProcessor.java
+│           └── UserUpdateWriter.java
 ├── src/main/resources/
 │   ├── application.yml                 # 应用配置
 │   └── jobs/                           # Job XML 配置
 │       ├── demo-job.xml               # 数据流转示例
-│       └── breakpoint-job.xml         # 断点续传示例
+│       ├── breakpoint-job.xml         # 断点续传示例
+│       ├── transfer-job.xml           # 参数/对象传递示例
+│       └── chunk-job.xml              # Chunk 分批处理示例
 ├── scripts/
 │   ├── init.sql                        # 数据库初始化脚本
 │   ├── run-job.bat                     # Windows 运行脚本
@@ -326,9 +337,9 @@ SpringBatch/
 spring:
   datasource:
     hikari:
-    maximum-pool-size: 3           # 最大连接数（批处理场景无需太多）
-    minimum-idle: 1                # 最小空闲连接
-    connection-timeout: 30000      # 连接超时时间（毫秒）
+      maximum-pool-size: 3           # 最大连接数（批处理场景无需太多）
+      minimum-idle: 1                # 最小空闲连接
+      connection-timeout: 30000      # 连接超时时间（毫秒）
 ```
 
 ### Batch 配置
@@ -337,9 +348,9 @@ spring:
 spring:
   batch:
     jdbc:
-    initialize-schema: always    # 开发环境: always，生产环境: never
+      initialize-schema: always    # 开发环境: always，生产环境: never
     job:
-    enabled: false               # 禁用自动执行，改为命令行触发
+      enabled: false               # 禁用自动执行，改为命令行触发
 ```
 
 ---

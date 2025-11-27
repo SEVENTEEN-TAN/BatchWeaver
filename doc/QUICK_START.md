@@ -19,7 +19,7 @@ Program arguments: jobName=demoJob
 
 # 运行方式 2: 命令行 (CLI)
 # 不提供 id 参数时，系统会自动使用当前时间戳作为 id，创建一个新的 Job 实例
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=demoJob
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=demoJob
 ```
 
 **预期结果**:
@@ -39,7 +39,7 @@ Spring Batch 通过 `JobParameters` 来识别 Job 实例。在本项目中，我
 
 ```bash
 # 使用固定 ID 运行
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
 ```
 - **现象**: 任务在 Step 2 抛出异常并失败
 - **数据库**: `BATCH_JOB_EXECUTION` 表中该任务状态为 `FAILED`
@@ -48,7 +48,7 @@ java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=100
 #### 步骤 2: 再次运行 (断点续传)
 ```bash
 # 使用相同的 ID 再次运行，Spring Batch 会自动识别并重启
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
 ```
 - **现象**: 
   - Spring Batch 检测到 ID 为 10001 的失败实例
@@ -63,9 +63,9 @@ java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=100
 #### 步骤 3: 强制创建新实例
 ```bash
 # 如果想从头开始执行新的任务，只需不传 id (自动生成) 或传入新 id
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob
 # 或者
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=20002
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=20002
 ```
 - **现象**: 创建新的 Job 实例，从 Step 1 开始执行
 - **注意**: 需要先删除 `breakpoint_marker.tmp` 文件，否则不会触发失败
@@ -77,11 +77,11 @@ java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=200
 
 <job id="transferJob">
     <step id="produce">
-        <className>com.example.batch.job.transfer.TransferServicecom.example.batch.job.transfer.TransferService</className>
+        <className>com.example.batch.job.transfer.TransferService</className>
         <methodName>step1Produce</methodName>
     </step>
     <step id="consume">
-        <className>com.example.batch.job.transfer.TransferServicecom.example.batch.job.transfer.TransferService</className>
+        <className>com.example.batch.job.transfer.TransferService</className>
         <methodName>step2Consume</methodName>
     </step>
 </job>

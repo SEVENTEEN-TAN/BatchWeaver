@@ -33,7 +33,7 @@
 
 ## 目录结构
 - `src/main/resources/jobs/`: 存放 Job 的 XML 配置文件。
-- `src/main/java/com/example/batch/service/`: 存放具体的业务逻辑 Service。
+- `src/main/java/com/example/batch/job/`: 业务 Job 包（demo、breakpoint、transfer、chunk）。
 - `src/main/java/com/example/batch/core/`: 核心框架代码 (`XmlJobParser`, `ReflectionTasklet`, `DynamicJobRunner`)。
 
 ## 扩展性
@@ -65,7 +65,7 @@ public void step(StepContribution c, ChunkContext x) {
     - `chunk(commitInterval, transactionManager)`
     - `reader(ItemReader)` / `processor(ItemProcessor)` / `writer(ItemWriter)`
   - 组件实例化策略：优先从 Spring 容器获取；否则反射创建
-  - 自动注入：若组件存在 `setJdbcTemplate(JdbcTemplate)` 或 `setPageSize(Integer)` 方法，则自动注入容器中的 `JdbcTemplate` 与配置的 `pageSize`
+  - 自动注入：若组件存在 `setJdbcTemplate(JdbcTemplate)` 或 `setPageSize(int)` 方法，则自动注入容器中的 `JdbcTemplate` 与 XML 配置的 `pageSize`
 - 设计优势：
   - 将大任务拆分为若干短事务，缩短锁持有时间，提高吞吐
   - 每次提交形成检查点，失败仅影响当前批次，重跑可从最近提交处继续
