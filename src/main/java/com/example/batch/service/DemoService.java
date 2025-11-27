@@ -1,17 +1,15 @@
 package com.example.batch.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class DemoService {
-
-    private static final Logger log = LoggerFactory.getLogger(DemoService.class);
 
     private final JdbcTemplate jdbcTemplate;
 

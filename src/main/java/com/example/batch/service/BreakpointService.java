@@ -1,16 +1,15 @@
 package com.example.batch.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
 
+@Slf4j
 @Service
 public class BreakpointService {
 
-    private static final Logger log = LoggerFactory.getLogger(BreakpointService.class);
     private static final String MARKER_FILE = "breakpoint_marker.tmp";
 
     public void prepare() {

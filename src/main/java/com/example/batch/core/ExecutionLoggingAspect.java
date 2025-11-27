@@ -1,18 +1,16 @@
 package com.example.batch.core;
 
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Aspect
 @Component
 public class ExecutionLoggingAspect {
-
-    private static final Logger log = LoggerFactory.getLogger(ExecutionLoggingAspect.class);
 
     @Around("execution(* com.example.batch.service..*(..))")
     public Object aroundServiceMethods(ProceedingJoinPoint pjp) throws Throwable {

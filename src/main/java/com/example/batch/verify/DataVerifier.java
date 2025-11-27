@@ -1,5 +1,6 @@
 package com.example.batch.verify;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Component
 public class DataVerifier implements CommandLineRunner {
 
@@ -20,11 +22,11 @@ public class DataVerifier implements CommandLineRunner {
             return; // Skip verification when running jobs
         }
 
-        System.out.println("=== Data Verification ===");
+        log.info("=== Data Verification ===");
         List<Map<String, Object>> results = jdbcTemplate.queryForList("SELECT * FROM USER_DATA");
-        System.out.println("Total records: " + results.size());
+        log.info("Total records: {}", results.size());
         for (Map<String, Object> row : results) {
-            System.out.println(row);
+            log.info(row.toString());
         }
     }
 }

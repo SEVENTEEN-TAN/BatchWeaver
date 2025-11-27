@@ -5,8 +5,7 @@ import com.example.batch.core.model.JobXml;
 import com.example.batch.core.model.StepXml;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -23,10 +22,9 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 public class XmlJobParser {
-
-    private static final Logger log = LoggerFactory.getLogger(XmlJobParser.class);
 
     private final JobRepository jobRepository;
     private final PlatformTransactionManager transactionManager;

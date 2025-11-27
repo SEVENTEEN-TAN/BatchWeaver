@@ -1,6 +1,7 @@
 package com.example.batch;
 
 import cn.hutool.core.util.StrUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -8,6 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * 注意: 如果需要在IDE中启动请使用DEBUGGER模式!!!
  */
+@Slf4j
 @SpringBootApplication
 @EnableScheduling
 public class BatchApplication {
@@ -41,13 +43,13 @@ public class BatchApplication {
         // 3. 核心逻辑：区分环境处理
         if (isIde) {
             // IDE模式：为了开发方便，如果没有提供参数，自动注入默认值
-            System.out.println(">>> IDE Environment Detected <<<");
+            log.info(">>> IDE Environment Detected <<<");
             if (!hasJobName) {
-                System.out.println("IDE Mode: Auto-injecting jobName=" + DEFAULT_JOB_NAME);
+                log.info("IDE Mode: Auto-injecting jobName={}", DEFAULT_JOB_NAME);
                 finalArgs.add("jobName=" + DEFAULT_JOB_NAME);
             }
             if (!hasId && RUN_JOB_ID != null && !RUN_JOB_ID.trim().isEmpty()) {
-                System.out.println("IDE Mode: Auto-injecting id=" + RUN_JOB_ID);
+                log.info("IDE Mode: Auto-injecting id={}", RUN_JOB_ID);
                 finalArgs.add("id=" + RUN_JOB_ID);
             }
         } else {
@@ -65,12 +67,12 @@ public class BatchApplication {
     }
 
     private static void printUsage() {
-        System.err.println("========================================");
-        System.err.println("ERROR: jobName is required!");
-        System.err.println("Usage: java -jar app.jar jobName=<name> [id=<id>]");
-        System.err.println("Example 1 (New Instance): java -jar app.jar jobName=demoJob");
-        System.err.println("Example 2 (Retry/Resume): java -jar app.jar jobName=demoJob id=12345");
-        System.err.println("========================================");
+        log.error("========================================");
+        log.error("ERROR: jobName is required!");
+        log.error("Usage: java -jar app.jar jobName=<name> [id=<id>]");
+        log.error("Example 1 (New Instance): java -jar app.jar jobName=demoJob");
+        log.error("Example 2 (Retry/Resume): java -jar app.jar jobName=demoJob id=12345");
+        log.error("========================================");
     }
 
 }
