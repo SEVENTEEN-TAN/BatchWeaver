@@ -104,6 +104,28 @@ public void step2Consume(StepContribution c, ChunkContext x) {
 java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=transferJob id=10001
 ```
 
+### 4. 分批处理（chunkJob）
+当数据量较大时，推荐使用 chunk 模式按批次提交事务：
+
+```xml
+<job id="chunkJob">
+  <step id="chunkStep" type="chunk" commitInterval="500" pageSize="500"
+        readerClass="com.example.batch.chunk.CursorUserReader"
+        processorClass="com.example.batch.chunk.UppercaseUsernameProcessor"
+        writerClass="com.example.batch.chunk.UserUpdateWriter"/>
+</job>
+```
+
+- `commitInterval`：每批处理条数；提交一次事务形成检查点
+- `pageSize`：Reader 每次分页读取条数
+- Reader/Processor/Writer：分别负责读取、逐条加工、批量写入
+
+运行：
+```bash
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=chunkJob
+```
+效果：缩短锁持有时间，提高吞吐；失败仅影响当前批次，重跑从最近提交处继续。
+
 ## 常用命令
 - **打包**: `mvn clean package -DskipTests`
 - **清理**: `mvn clean`

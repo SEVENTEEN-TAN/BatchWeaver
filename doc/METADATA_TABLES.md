@@ -365,3 +365,11 @@ ctx.put("payload", new SerializableDto(...));
 - 为常用查询字段添加索引
 - 定期分析执行计划
 - 考虑分区表（数据量大时）
+
+### 5. Chunk 指标与事务
+- `COMMIT_COUNT`：表示该 Step 在运行期间的提交次数；chunk 模式下与提交批次数一致
+- `READ_COUNT`/`WRITE_COUNT`：读写总条数；结合 `COMMIT_COUNT` 可估算平均每批大小
+- `ROLLBACK_COUNT`：回滚次数；异常时仅影响当前批次，重跑可从最近提交处继续
+- 观测建议：
+  - 设置合理的 `commitInterval` 以平衡事务成本与检查点密度
+  - 关注 `DURATION_SECONDS` 与 `COMMIT_COUNT`，识别长事务与吞吐瓶颈

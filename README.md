@@ -258,6 +258,30 @@ XML 配置：
 
 运行：`java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=transferJob id=10001`
 
+### Chunk 分批处理示例
+
+为了提升大数据量场景下的吞吐与事务效率，框架支持基于 XML 的 chunk（分批提交）配置：
+
+```xml
+<job id="chunkJob">
+  <step id="chunkStep" type="chunk" commitInterval="500" pageSize="500"
+        readerClass="com.example.batch.chunk.CursorUserReader"
+        processorClass="com.example.batch.chunk.UppercaseUsernameProcessor"
+        writerClass="com.example.batch.chunk.UserUpdateWriter"/>
+</job>
+```
+
+- `type=chunk`：声明这是分批提交的步骤
+- `commitInterval=500`：每处理 500 条进行一次事务提交（形成检查点）
+- `pageSize=500`：Reader 每次分页读取 500 条记录到内存
+- `readerClass`：分页读取器（示例从 `DEMO_USER` 读取）
+- `processorClass`：逐条加工（示例将 `USERNAME` 转为大写）
+- `writerClass`：批量写入（示例更新用户名并设为 `ACTIVE`）
+
+运行：`java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=chunkJob`
+
+效果：每 500 条提交一次，缩短锁持有时间；失败仅影响当前批次，重跑可从最近提交点继续。
+
 ---
 
 ## 📊 项目结构

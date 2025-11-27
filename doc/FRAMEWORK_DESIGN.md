@@ -57,3 +57,15 @@ public void step(StepContribution c, ChunkContext x) {
   ctx.put("batchId", id);
 }
 ```
+
+## Chunk 步骤支持
+- XML 扩展字段：`type`、`commitInterval`、`pageSize`、`readerClass`、`processorClass`、`writerClass`
+- 解析构建：
+  - 当 `type=chunk` 或存在 `readerClass` 时，`XmlJobParser` 构建 `SimpleStepBuilder`：
+    - `chunk(commitInterval, transactionManager)`
+    - `reader(ItemReader)` / `processor(ItemProcessor)` / `writer(ItemWriter)`
+  - 组件实例化策略：优先从 Spring 容器获取；否则反射创建
+  - 自动注入：若组件存在 `setJdbcTemplate(JdbcTemplate)` 或 `setPageSize(Integer)` 方法，则自动注入容器中的 `JdbcTemplate` 与配置的 `pageSize`
+- 设计优势：
+  - 将大任务拆分为若干短事务，缩短锁持有时间，提高吞吐
+  - 每次提交形成检查点，失败仅影响当前批次，重跑可从最近提交处继续

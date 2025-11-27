@@ -83,17 +83,75 @@ public class XmlJobParser {
     }
 
     private Step buildStep(StepXml stepXml) {
+        // chunk step
+        if ((stepXml.getType() != null && stepXml.getType().equalsIgnoreCase("chunk"))
+                || stepXml.getReaderClass() != null) {
+            int commitInterval = stepXml.getCommitInterval() != null ? stepXml.getCommitInterval() : 500;
+            org.springframework.batch.item.ItemReader<?> reader = (org.springframework.batch.item.ItemReader<?>) instantiate(stepXml.getReaderClass());
+            org.springframework.batch.item.ItemProcessor<?, ?> processor = null;
+            org.springframework.batch.item.ItemWriter<?> writer = (org.springframework.batch.item.ItemWriter<?>) instantiate(stepXml.getWriterClass());
+            if (stepXml.getProcessorClass() != null) {
+                processor = (org.springframework.batch.item.ItemProcessor<?, ?>) instantiate(stepXml.getProcessorClass());
+            }
+
+            // optional injection
+            injectIfPresent(reader, "setJdbcTemplate", org.springframework.jdbc.core.JdbcTemplate.class);
+            injectIfPresent(writer, "setJdbcTemplate", org.springframework.jdbc.core.JdbcTemplate.class);
+            if (stepXml.getPageSize() != null) {
+                injectIfPresent(reader, "setPageSize", Integer.class, stepXml.getPageSize());
+            }
+
+            StepBuilder sb = new StepBuilder(stepXml.getId(), jobRepository);
+            org.springframework.batch.core.step.builder.SimpleStepBuilder<?, ?> ssb = sb.<Object, Object>chunk(commitInterval, transactionManager)
+                    .reader((org.springframework.batch.item.ItemReader) reader)
+                    .writer((org.springframework.batch.item.ItemWriter) writer);
+            if (processor != null) {
+                ssb.processor((org.springframework.batch.item.ItemProcessor) processor);
+            }
+            return ssb.build();
+        }
+
+        // tasklet step (default)
         java.util.Map<String, String> properties = new java.util.HashMap<>();
         if (stepXml.getProperties() != null) {
             stepXml.getProperties().forEach(p -> properties.put(p.getName(), p.getValue()));
         }
-
         ReflectionTasklet tasklet = new ReflectionTasklet(stepXml.getClassName(), stepXml.getMethodName(), properties);
         tasklet.setApplicationContext(applicationContext);
-
         return new StepBuilder(stepXml.getId(), jobRepository)
                 .tasklet(tasklet, transactionManager)
                 .build();
+    }
+
+    private Object instantiate(String className) {
+        if (className == null || className.isEmpty()) return null;
+        try {
+            Class<?> clazz = Class.forName(className);
+            try {
+                return applicationContext.getBean(clazz);
+            } catch (Exception e) {
+                return clazz.getDeclaredConstructor().newInstance();
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to instantiate: " + className, e);
+        }
+    }
+
+    private void injectIfPresent(Object target, String methodName, Class<?> argType) {
+        if (target == null) return;
+        try {
+            java.lang.reflect.Method m = target.getClass().getMethod(methodName, argType);
+            Object bean = applicationContext.getBean(argType);
+            m.invoke(target, bean);
+        } catch (Exception ignored) {}
+    }
+
+    private void injectIfPresent(Object target, String methodName, Class<?> argType, Object value) {
+        if (target == null) return;
+        try {
+            java.lang.reflect.Method m = target.getClass().getMethod(methodName, argType);
+            m.invoke(target, value);
+        } catch (Exception ignored) {}
     }
 
     public Job getJob(String jobName) {
