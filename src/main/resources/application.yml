@@ -17,9 +17,7 @@ spring:
       connection-test-query: SELECT 1  # 连接测试查询
   batch:
     jdbc:
-      # 开发环境: always (自动创建表)
-      # 生产环境: never (使用 init.sql 手动创建)
-      initialize-schema: always
+      initialize-schema: never
     job:
       enabled: false
 
