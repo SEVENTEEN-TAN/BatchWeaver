@@ -25,11 +25,7 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jdbc</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-starter</artifactId>
-            <version>1.2.20</version>
-        </dependency>
+        <!-- HikariCP 已包含在 spring-boot-starter-data-jdbc 中，无需额外依赖 -->
         <!-- SQL Server 2022 驱动 -->
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>

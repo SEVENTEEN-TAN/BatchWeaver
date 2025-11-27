@@ -3,31 +3,22 @@ spring:
     name: batch-scheduler
   datasource:
     # SQL Server 2022 配置
-    url: jdbc:sqlserver://124.223.172.114:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
+    url: jdbc:sqlserver://localhost:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     username: sa
     password: YourStrong!Passw0rd
-    druid:
-      url: jdbc:sqlserver://124.223.172.114:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
-      driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
-      username: sa
-      password: YourStrong!Passw0rd
-      initial-size: 5
-      min-idle: 5
-      max-active: 20
-      max-wait: 60000
-      time-between-eviction-runs-millis: 60000
-      min-evictable-idle-time-millis: 300000
-      validation-query: "SELECT 1"
-      test-while-idle: true
-      test-on-borrow: false
-      test-on-return: false
-      pool-prepared-statements: true
-      max-pool-prepared-statement-per-connection-size: 20
+    # HikariCP 连接池配置（Spring Boot 默认）
+    hikari:
+      maximum-pool-size: 3           # 最大连接数（批处理场景无需太多）
+      minimum-idle: 1                # 最小空闲连接
+      connection-timeout: 30000      # 连接超时时间（毫秒）
+      idle-timeout: 600000           # 空闲连接超时时间（10分钟）
+      max-lifetime: 1800000          # 连接最大生命周期（30分钟）
+      connection-test-query: SELECT 1  # 连接测试查询
   batch:
     jdbc:
       # 开发环境: always (自动创建表)
-      # 生产环境: never (使用 init-sqlserver.sql 手动创建)
+      # 生产环境: never (使用 init.sql 手动创建)
       initialize-schema: always
     job:
       enabled: false
@@ -37,3 +28,4 @@ logging:
     root: INFO
     com.example.batch: DEBUG
     org.springframework.batch: INFO
+    com.zaxxer.hikari: INFO          # HikariCP 日志
