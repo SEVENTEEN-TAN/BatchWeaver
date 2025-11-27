@@ -4,6 +4,7 @@ target/
 *.swp
 *.iml
 .idea/
+.trae/
 .vscode/
 .settings/
 .classpath

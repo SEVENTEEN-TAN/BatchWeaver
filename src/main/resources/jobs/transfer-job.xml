@@ -1,0 +1,11 @@
+<job id="transferJob">
+    <step id="produce">
+        <className>com.example.batch.service.TransferService</className>
+        <methodName>step1Produce</methodName>
+    </step>
+    <step id="consume">
+        <className>com.example.batch.service.TransferService</className>
+        <methodName>step2Consume</methodName>
+    </step>
+</job>
+

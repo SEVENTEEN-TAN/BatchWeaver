@@ -17,12 +17,12 @@ public class BatchApplication {
     /**
      * 默认 Job 名称（当没有指定 jobName 参数时使用）
      */
-    private static final String DEFAULT_JOB_NAME = "breakpointJob";
+    private static final String DEFAULT_JOB_NAME = "transferJob";
 
     /**
      * 需要重跑 Job ID（从断点异常处重跑）
      */
-    private static final String RUN_JOB_ID = "ABCD1234";
+    private static final Long RUN_JOB_ID = null;
 
     public static void main(String[] args) {
         // 1. 检测启动环境 (IDE vs CLI)
@@ -48,7 +48,7 @@ public class BatchApplication {
                 log.info("IDE Mode: Auto-injecting jobName={}", DEFAULT_JOB_NAME);
                 finalArgs.add("jobName=" + DEFAULT_JOB_NAME);
             }
-            if (!hasId && RUN_JOB_ID != null && !RUN_JOB_ID.trim().isEmpty()) {
+            if (!hasId && RUN_JOB_ID != null) {
                 log.info("IDE Mode: Auto-injecting id={}", RUN_JOB_ID);
                 finalArgs.add("id=" + RUN_JOB_ID);
             }
