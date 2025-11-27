@@ -18,10 +18,23 @@
     - 支持将 XML 中的 `properties` 注入到方法参数或 Bean 属性中。
 - **优势**: 开发者只需编写普通的 Java Service 方法，无需实现复杂的 Spring Batch 接口。
 
+### 3. DynamicJobRunner
+- **功能**: 统一的 Job 启动入口，封装了参数处理和异常捕获逻辑。
+- **ID 策略**:
+    - **自动生成**: 如果启动参数中未包含 `id`，Runner 会自动使用当前时间戳生成 `id`，从而确保创建新的 Job Instance。
+    - **指定 ID**: 如果参数中包含 `id`，Runner 会使用该 ID 尝试启动 Job。如果该 ID 对应的 Job Instance 已存在且已完成，则跳过执行；如果已失败，则尝试断点续传。
+- **优势**: 简化了 Job 的重试和新实例创建逻辑，对用户透明。
+
+### 4. BatchApplication (启动器)
+- **功能**: 程序的 main 入口，负责环境检测和参数预处理。
+- **环境适配**:
+    - **IDE 模式**: 检测到 IDE 环境（如 IntelliJ IDEA）时，如果未提供参数，会自动注入默认的 `jobName` 和 `id`，方便开发调试。
+    - **CLI 模式**: 生产环境下严格校验必要参数 (`jobName`)，并提供友好的使用提示。
+
 ## 目录结构
 - `src/main/resources/jobs/`: 存放 Job 的 XML 配置文件。
 - `src/main/java/com/example/batch/service/`: 存放具体的业务逻辑 Service。
-- `src/main/java/com/example/batch/core/`: 核心框架代码 (`XmlJobParser`, `ReflectionTasklet`)。
+- `src/main/java/com/example/batch/core/`: 核心框架代码 (`XmlJobParser`, `ReflectionTasklet`, `DynamicJobRunner`)。
 
 ## 扩展性
 - **新增业务**: 编写新的 Service 类 -> 在 XML 中配置新的 Step。

@@ -1,4 +1,4 @@
-﻿# BatchWeaver - Spring Batch 动态编排引擎
+# BatchWeaver - Spring Batch 动态编排引擎
 
 <div align="center">
 
@@ -21,7 +21,8 @@ BatchWeaver 是一个轻量级的 Spring Batch 动态编排框架，通过 **XML
 
 - ✅ **动态配置**: 通过 XML 定义 Job 流程，无需修改 Java 代码
 - ✅ **反射调用**: 自动解析 XML 并通过反射调用 Spring Bean 方法
-- ✅ **断点续传**: 原生支持 Spring Batch 的失败重启机制
+- ✅ **断点续传**: 原生支持 Spring Batch 的失败重启机制，支持指定 ID 重试
+- ✅ **智能环境适配**: 自动识别 IDE 和 CLI 环境，提供便捷的调试体验
 - ✅ **元数据管理**: 完整的执行历史、状态追踪和统计信息
 - ✅ **轻量高效**: 使用 HikariCP 连接池，启动快速，资源占用低
 
@@ -113,16 +114,17 @@ mvn clean package -DskipTests
 
 #### 运行 Demo Job（数据流转）
 ```bash
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=demoJob
+# 自动生成 ID (新实例)
+java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=demoJob
 ```
 
 #### 运行 Breakpoint Job（断点续传）
 ```bash
-# 首次运行（会失败）
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob
+# 首次运行（指定 ID，预期失败）
+java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
 
-# 再次运行（自动续传）
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob
+# 再次运行（使用相同 ID，自动续传）
+java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
 ```
 
 ---
@@ -139,26 +141,31 @@ java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob
 
 ## 🎯 使用方法
 
-### 方式一: 命令行运行
+### 方式一: 命令行运行 (CLI)
+
+CLI 模式下，`jobName` 是必须参数，`id` 是可选参数。
 
 ```bash
-# 基本用法
-java -jar app.jar jobName=<jobName>
+# 1. 创建新实例 (不传 id，系统自动生成时间戳 id)
+java -jar app.jar jobName=demoJob
 
-# 传递参数
+# 2. 传递业务参数 (param1, param2...)
 java -jar app.jar jobName=demoJob param1=value1 param2=value2
 
-# 强制创建新实例
-java -jar app.jar jobName=demoJob restart=false
+# 3. 指定 ID 运行 (用于重试/续传，或手动指定业务 ID)
+java -jar app.jar jobName=demoJob id=20240101
 ```
 
-### 方式二: IDE 运行
+### 方式二: IDE 运行 (IntelliJ IDEA)
 
-在 IntelliJ IDEA 中配置 Program Arguments：
+IDE 模式下，系统会自动注入默认参数，方便快速调试。
 
-```
-jobName=demoJob
-```
+1. 打开 `BatchApplication.java`
+2. 配置 Program Arguments (可选):
+   ```
+   jobName=demoJob
+   ```
+3. 如果不配置任何参数，系统会自动检测 IDE 环境并注入默认值 (`jobName=demoJob`, `id=1001`)。
 
 ### 方式三: 编写自定义 Job
 
@@ -199,10 +206,10 @@ java -jar app.jar jobName=myJob
 ```
 SpringBatch/
 ├── src/main/java/com/example/batch/
-│   ├── BatchApplication.java          # 启动类
+│   ├── BatchApplication.java          # 启动类 (含环境检测逻辑)
 │   ├── core/                           # 核心框架
 │   │   ├── XmlJobParser.java          # XML 解析器
-│   │   ├── DynamicJobRunner.java      # 动态 Job 运行器
+│   │   ├── DynamicJobRunner.java      # 动态 Job 运行器 (含 ID 处理)
 │   │   └── model/                      # XML 映射模型
 │   ├── components/                     # 组件
 │   │   └── ReflectionTasklet.java     # 反射 Tasklet
@@ -234,9 +241,9 @@ SpringBatch/
 spring:
   datasource:
     hikari:
-      maximum-pool-size: 3           # 最大连接数（批处理场景无需太多）
-      minimum-idle: 1                # 最小空闲连接
-      connection-timeout: 30000      # 连接超时时间（毫秒）
+    maximum-pool-size: 3           # 最大连接数（批处理场景无需太多）
+    minimum-idle: 1                # 最小空闲连接
+    connection-timeout: 30000      # 连接超时时间（毫秒）
 ```
 
 ### Batch 配置
@@ -245,9 +252,9 @@ spring:
 spring:
   batch:
     jdbc:
-      initialize-schema: always    # 开发环境: always，生产环境: never
+    initialize-schema: always    # 开发环境: always，生产环境: never
     job:
-      enabled: false               # 禁用自动执行，改为命令行触发
+    enabled: false               # 禁用自动执行，改为命令行触发
 ```
 
 ---

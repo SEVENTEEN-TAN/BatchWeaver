@@ -7,16 +7,18 @@
 
 ## 运行 Job
 
-本项目支持通过命令行参数指定要运行的 Job。
+本项目支持通过命令行参数指定要运行的 Job。启动程序会自动根据环境（IDE 或 CLI）进行适配。
 
 ### 1. 运行 Demo Job (数据流转)
 该 Job 演示了数据的导入、更新和导出流程。
 
 ```bash
 # 运行方式 1: IDE 参数
+# IDE 模式下，如果不提供 id，会自动注入默认 id 以便调试
 Program arguments: jobName=demoJob
 
-# 运行方式 2: Java Jar
+# 运行方式 2: 命令行 (CLI)
+# 不提供 id 参数时，系统会自动使用当前时间戳作为 id，创建一个新的 Job 实例
 java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=demoJob
 ```
 
@@ -28,14 +30,16 @@ java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=demoJob
 该 Job 模拟任务执行失败，并演示 Spring Batch 的断点续传机制。
 
 #### 断点续传原理
-Spring Batch 通过 `JobParameters` 来识别 Job 实例：
-- **相同参数** = 同一个 Job 实例 → 失败后可以续传
-- **不同参数** = 新的 Job 实例 → 从头开始执行
+Spring Batch 通过 `JobParameters` 来识别 Job 实例。在本项目中，我们统一使用 `id` 参数作为唯一标识：
+- **指定相同的 id** = 同一个 Job 实例 → 失败后可以续传 (Resume)
+- **指定新的 id (或不传)** = 新的 Job 实例 → 从头开始执行 (New Instance)
 
 #### 步骤 1: 首次运行 (模拟失败)
+为了演示断点续传，我们需要显式指定一个 ID，以便后续引用。
+
 ```bash
-# 使用固定参数运行
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob
+# 使用固定 ID 运行
+java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
 ```
 - **现象**: 任务在 Step 2 抛出异常并失败
 - **数据库**: `BATCH_JOB_EXECUTION` 表中该任务状态为 `FAILED`
@@ -43,11 +47,11 @@ java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob
 
 #### 步骤 2: 再次运行 (断点续传)
 ```bash
-# 使用相同的参数再次运行，Spring Batch 会自动识别并重启
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob
+# 使用相同的 ID 再次运行，Spring Batch 会自动识别并重启
+java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
 ```
 - **现象**: 
-  - Spring Batch 检测到之前失败的实例
+  - Spring Batch 检测到 ID 为 10001 的失败实例
   - 自动跳过已成功的 Step 1
   - 从失败的 Step 2 重新开始执行
   - 检测到标记文件存在，不再抛出异常
@@ -56,10 +60,12 @@ java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob
   - 同一个 `JOB_EXECUTION_ID` 的状态更新为 `COMPLETED`
   - `BATCH_STEP_EXECUTION` 表中可以看到 Step 1 只执行了一次，Step 2 执行了两次
 
-#### 步骤 3: 强制创建新实例 (可选)
+#### 步骤 3: 强制创建新实例
 ```bash
-# 如果想从头开始执行新的任务，传入 restart=false
-java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob restart=false
+# 如果想从头开始执行新的任务，只需不传 id (自动生成) 或传入新 id
+java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob
+# 或者
+java -jar target/batch-scheduler-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=20002
 ```
 - **现象**: 创建新的 Job 实例，从 Step 1 开始执行
 - **注意**: 需要先删除 `breakpoint_marker.tmp` 文件，否则不会触发失败

@@ -54,17 +54,27 @@ public class ReflectionTasklet implements Tasklet, ApplicationContextAware {
         // Find and invoke method
         Method method = ReflectionUtils.findMethod(clazz, methodName);
         if (method == null) {
-            // Try finding method with StepContribution and ChunkContext
             method = ReflectionUtils.findMethod(clazz, methodName, StepContribution.class, ChunkContext.class);
             if (method != null) {
-                method.invoke(target, contribution, chunkContext);
-                return RepeatStatus.FINISHED;
+                try {
+                    method.invoke(target, contribution, chunkContext);
+                    return RepeatStatus.FINISHED;
+                } catch (java.lang.reflect.InvocationTargetException e) {
+                    Throwable cause = e.getTargetException();
+                    if (cause instanceof RuntimeException re) throw re;
+                    throw new RuntimeException(cause);
+                }
             }
             throw new IllegalArgumentException("Method " + methodName + " not found in " + className);
         }
 
-        // Invoke no-arg method
-        method.invoke(target);
-        return RepeatStatus.FINISHED;
+        try {
+            method.invoke(target);
+            return RepeatStatus.FINISHED;
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            Throwable cause = e.getTargetException();
+            if (cause instanceof RuntimeException re) throw re;
+            throw new RuntimeException(cause);
+        }
     }
 }

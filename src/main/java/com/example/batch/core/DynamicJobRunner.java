@@ -5,6 +5,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.explore.JobExplorer;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.BatchStatus;
+import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
+import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -19,10 +24,12 @@ public class DynamicJobRunner implements CommandLineRunner {
 
     private final JobLauncher jobLauncher;
     private final XmlJobParser xmlJobParser;
+    private final JobExplorer jobExplorer;
 
-    public DynamicJobRunner(JobLauncher jobLauncher, XmlJobParser xmlJobParser) {
+    public DynamicJobRunner(JobLauncher jobLauncher, XmlJobParser xmlJobParser, JobExplorer jobExplorer) {
         this.jobLauncher = jobLauncher;
         this.xmlJobParser = xmlJobParser;
+        this.jobExplorer = jobExplorer;
     }
 
     @Override
@@ -53,34 +60,45 @@ public class DynamicJobRunner implements CommandLineRunner {
 
         log.info("Starting job: {}", jobName);
         JobParametersBuilder paramsBuilder = new JobParametersBuilder();
-        
+
         for (String key : params.stringPropertyNames()) {
-            paramsBuilder.addString(key, params.getProperty(key));
-        }
-        
-        // 断点续传机制说明：
-        // 1. Spring Batch 会自动识别失败的 Job（通过 JobParameters 匹配）
-        // 2. 如果使用相同的参数运行，会自动从失败的 Step 继续执行
-        // 3. 如果需要强制创建新实例，传入 restart=false 参数
-        boolean forceNewInstance = "false".equalsIgnoreCase(params.getProperty("restart"));
-        
-        if (forceNewInstance) {
-            // 添加时间戳，强制创建新的 Job 实例
-            paramsBuilder.addLong("run.id", System.currentTimeMillis());
-            log.info("Force creating new job instance (restart=false)");
-        } else {
-            // 使用固定参数，支持断点续传
-            // 如果之前有失败的实例，Spring Batch 会自动重启
-            if (!params.containsKey("run.id")) {
-                paramsBuilder.addString("run.id", "default");
+            String value = params.getProperty(key);
+            if (isNumeric(value)) {
+                try {
+                    paramsBuilder.addLong(key, Long.parseLong(value));
+                } catch (NumberFormatException ex) {
+                    paramsBuilder.addString(key, value);
+                }
+            } else {
+                paramsBuilder.addString(key, value);
             }
-            log.info("Using consistent parameters to support automatic restart");
         }
 
+        if (!params.containsKey("id")) {
+            paramsBuilder.addLong("id", System.currentTimeMillis());
+            log.info("No id provided, using startup timestamp");
+        }
+
+        JobParameters jobParameters = paramsBuilder.toJobParameters();
+
         try {
-            jobLauncher.run(job, paramsBuilder.toJobParameters());
+            JobExecution execution = jobLauncher.run(job, jobParameters);
+            log.info("JobExecution started id={} status={}", execution.getId(), execution.getStatus());
+        } catch (JobInstanceAlreadyCompleteException e) {
+            log.info("Job already completed for id={}, not re-executing", jobParameters.getParameters().get("id"));
+        } catch (JobExecutionAlreadyRunningException e) {
+            log.info("Job is already running for id={}, skip duplicate", jobParameters.getParameters().get("id"));
         } catch (Exception e) {
             log.error("Job execution failed", e);
         }
+    }
+
+    private boolean isNumeric(String s) {
+        if (s == null || s.isEmpty()) return false;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c < '0' || c > '9') return false;
+        }
+        return true;
     }
 }
