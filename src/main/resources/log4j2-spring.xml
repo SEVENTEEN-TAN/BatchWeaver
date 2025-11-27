@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+    <Properties>
+        <Property name="LOG_PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${sys:PID} --- [%15.15t] %-40.40c{1.} : %m%n%ex</Property>
+        <Property name="LOG_FILE_PATH">logs</Property>
+        <Property name="LOG_FILE_NAME">batch-weaver</Property>
+    </Properties>
+
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+
+        <RollingFile name="File" fileName="${LOG_FILE_PATH}/${LOG_FILE_NAME}.log"
+                     filePattern="${LOG_FILE_PATH}/${LOG_FILE_NAME}-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <!-- 每天触发一次轮转 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <!-- 如果文件大小超过10MB也触发轮转 -->
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <!-- max: 同一天内索引文件的最大编号，防止单日日志过多覆盖，这里设为100 -->
+            <DefaultRolloverStrategy max="100">
+                <!-- 自动删除策略：在每次Rollover时触发 -->
+                <Delete basePath="${LOG_FILE_PATH}" maxDepth="1">
+                    <!-- 1. 匹配归档日志文件 -->
+                    <IfFileName glob="${LOG_FILE_NAME}-*.log.gz" />
+                    <!-- 2. 删除最后修改时间超过90天的文件 -->
+                    <IfLastModified age="90d" />
+                </Delete>
+            </DefaultRolloverStrategy>
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Root>
+
+        <Logger name="com.example.batch" level="debug" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
+        
+        <Logger name="org.springframework.batch" level="info" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="File"/>
+        </Logger>
+    </Loggers>
+</Configuration>

@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: batch-scheduler
+  datasource:
+    # SQL Server 2022 配置
+    url: jdbc:sqlserver://124.223.172.114:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    username: sa
+    password: YourStrong!Passw0rd
+    # HikariCP 连接池配置（Spring Boot 默认）
+    hikari:
+      maximum-pool-size: 3           # 最大连接数（批处理场景无需太多）
+      minimum-idle: 1                # 最小空闲连接
+      connection-timeout: 30000      # 连接超时时间（毫秒）
+      idle-timeout: 600000           # 空闲连接超时时间（10分钟）
+      max-lifetime: 1800000          # 连接最大生命周期（30分钟）
+      connection-test-query: SELECT 1  # 连接测试查询
+  batch:
+    jdbc:
+      initialize-schema: never
+    job:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    com.example.batch: DEBUG
+    org.springframework.batch: INFO
+    com.zaxxer.hikari: INFO          # HikariCP 日志
