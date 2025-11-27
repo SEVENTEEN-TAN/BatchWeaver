@@ -3,12 +3,12 @@ spring:
     name: batch-scheduler
   datasource:
     # SQL Server 2022 配置
-    url: jdbc:sqlserver://localhost:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
+    url: jdbc:sqlserver://124.223.172.114:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
     username: sa
     password: YourStrong!Passw0rd
     druid:
-      url: jdbc:sqlserver://localhost:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
+      url: jdbc:sqlserver://124.223.172.114:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
       username: sa
       password: YourStrong!Passw0rd

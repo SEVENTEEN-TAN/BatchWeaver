@@ -58,9 +58,23 @@ public class DynamicJobRunner implements CommandLineRunner {
             paramsBuilder.addString(key, params.getProperty(key));
         }
         
-        // If not resuming, add unique parameter to ensure new instance
-        if (!params.containsKey("resume") || !"true".equalsIgnoreCase(params.getProperty("resume"))) {
+        // 断点续传机制说明：
+        // 1. Spring Batch 会自动识别失败的 Job（通过 JobParameters 匹配）
+        // 2. 如果使用相同的参数运行，会自动从失败的 Step 继续执行
+        // 3. 如果需要强制创建新实例，传入 restart=false 参数
+        boolean forceNewInstance = "false".equalsIgnoreCase(params.getProperty("restart"));
+        
+        if (forceNewInstance) {
+            // 添加时间戳，强制创建新的 Job 实例
             paramsBuilder.addLong("run.id", System.currentTimeMillis());
+            log.info("Force creating new job instance (restart=false)");
+        } else {
+            // 使用固定参数，支持断点续传
+            // 如果之前有失败的实例，Spring Batch 会自动重启
+            if (!params.containsKey("run.id")) {
+                paramsBuilder.addString("run.id", "default");
+            }
+            log.info("Using consistent parameters to support automatic restart");
         }
 
         try {

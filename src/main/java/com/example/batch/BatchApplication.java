@@ -11,7 +11,7 @@ public class BatchApplication {
     /**
      * 默认 Job 名称（当没有指定 jobName 参数时使用）
      */
-    private static final String DEFAULT_JOB_NAME = "multiStepJob";
+    private static final String DEFAULT_JOB_NAME = "demoJob";
 
     public static void main(String[] args) {
         // 检查是否提供了 jobName 参数
