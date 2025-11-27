@@ -1,6 +1,0 @@
-<job id="testFailJob">
-    <step id="validateInvalid" className="com.example.batch.steps.FileValidationTasklet" methodName="execute">
-        <property name="filePath" value="data/input_invalid.csv"/>
-    </step>
-    <step id="shouldNotRun" className="com.example.batch.steps.DemoTasklet" methodName="execute"/>
-</job>

@@ -1,3 +1,14 @@
 <job id="demoJob">
-    <step id="step1" className="com.example.batch.steps.DemoTasklet" methodName="execute"/>
+    <step id="importStep">
+        <className>com.example.batch.service.DemoService</className>
+        <methodName>importData</methodName>
+    </step>
+    <step id="updateStep">
+        <className>com.example.batch.service.DemoService</className>
+        <methodName>updateData</methodName>
+    </step>
+    <step id="exportStep">
+        <className>com.example.batch.service.DemoService</className>
+        <methodName>exportData</methodName>
+    </step>
 </job>
