@@ -86,6 +86,12 @@
             <artifactId>spring-batch-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- MyBatis-Flex Spring Boot Starter -->
+        <dependency>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-spring-boot3-starter</artifactId>
+            <version>2.0.9</version>
+        </dependency>
     </dependencies>
 
     <build>

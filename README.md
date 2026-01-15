@@ -24,6 +24,7 @@
 - ✅ **灵活编排**: 支持复杂的条件流（Conditional Flow）
 - ✅ **断点续传**: 原生支持失败重启机制
 - ✅ **分层架构**: Config 层 + Service 层，职责清晰
+- ✅ **多数据源**: 集成 MyBatis-Flex，支持动态路由 4 个数据库
 
 ---
 
@@ -33,6 +34,7 @@
 |------|------|------|
 | **Spring Boot** | 3.5.7 | 应用框架 |
 | **Spring Batch** | 5.x | 批处理框架 |
+| **MyBatis-Flex** | 2.0.9 | ORM 框架 + 多数据源 |
 | **Java** | 21 | 开发语言（LTS 版本） |
 | **SQL Server** | 2022 | 元数据存储 |
 | **HikariCP** | 默认 | 数据库连接池 |
@@ -98,6 +100,119 @@ java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=conditionalJob
 
 # 模拟失败 (Step 1 -> Step 3)
 java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=conditionalJob fail=true
+```
+
+#### 运行 Multi-DataSource Job（多数据源演示）
+
+**成功场景**（所有 Step 正常执行）：
+```bash
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=multiDataSourceJob simulateFail=false
+```
+
+或使用脚本：
+```bash
+scripts\demo-success.bat
+```
+
+**失败恢复场景**（Step3 失败，断点续传）：
+```bash
+# 第一次运行：Step3 失败
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=multiDataSourceJob simulateFail=true id=9999
+
+# 第二次运行：断点续传（从 Step3 继续）
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=multiDataSourceJob simulateFail=false id=9999
+```
+
+或使用脚本（自动执行两次）：
+```bash
+scripts\demo-fail-resume.bat
+```
+
+**验证结果**：
+- 成功场景：DB1/DB2/DB3/DB4 均有数据
+- 失败场景：
+  - 第一次运行：DB1/DB2 有数据，DB3/DB4 无数据
+  - 元数据表记录 `db3Step=FAILED`
+  - 第二次运行：仅执行 Step3/Step4，DB3/DB4 补充数据
+```
+
+---
+
+## 🔀 多数据源配置
+
+项目集成了 **MyBatis-Flex 2.0.9**，支持 4 个 SQL Server 数据源的动态路由。
+
+### 数据源说明
+
+| 数据源 | 数据库名 | 用途 |
+|--------|---------|------|
+| **db1** | BatchWeaverDB | Spring Batch 元数据 + 业务数据 |
+| **db2** | DB2_Business | 业务数据库 2 |
+| **db3** | DB3_Business | 业务数据库 3 |
+| **db4** | DB4_Business | 业务数据库 4 |
+
+### 配置示例
+
+在 `application.yml` 中配置：
+
+```yaml
+mybatis-flex:
+  datasource:
+    db1:
+      type: hikari
+      url: jdbc:sqlserver://host:1433;databaseName=BatchWeaverDB;...
+      username: sa
+      password: ***
+    db2:
+      type: hikari
+      url: jdbc:sqlserver://host:1433;databaseName=DB2_Business;...
+      # ...
+```
+
+### 使用方式
+
+在 Service 层使用 `@UseDataSource` 注解切换数据源：
+
+```java
+@Service
+public class Db2BusinessService {
+
+    @Autowired
+    private Db2UserMapper mapper;
+
+    @Transactional
+    @UseDataSource("db2")  // 动态切换到 db2 数据源
+    public void processDb2Data() {
+        // 所有数据库操作在 db2 上执行
+        mapper.insert(...);
+    }
+}
+```
+
+### 事务隔离机制
+
+**关键设计**：Spring Batch 元数据事务与业务事务完全隔离
+
+1. **元数据事务**：由 `BatchConfig` 中的 `batchTransactionManager` 管理，始终在 `db1` 上执行
+2. **业务事务**：由 `DataSourceConfig` 中的 `businessTransactionManager` 管理，根据 `@UseDataSource` 动态切换
+
+**效果**：
+- Step 失败时，业务数据回滚（db2/db3/db4）
+- 元数据正常提交（db1 的 `BATCH_STEP_EXECUTION` 记录失败状态）
+- 保证断点续传机制正常工作
+
+### 数据库初始化
+
+每个数据库需创建 `DEMO_USER` 表：
+
+```sql
+CREATE TABLE DEMO_USER (
+    ID BIGINT IDENTITY(1,1) PRIMARY KEY,
+    USERNAME NVARCHAR(100),
+    EMAIL NVARCHAR(100),
+    STATUS NVARCHAR(50),
+    UPDATE_TIME DATETIME2
+);
 ```
 
 ---

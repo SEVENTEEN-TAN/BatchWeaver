@@ -1,0 +1,26 @@
+{
+  "last_updated": "2026-01-15T15:07:28",
+  "modules": [
+    {
+      "path": ".",
+      "name": "BatchWeaver",
+      "description": "Spring Batch Orchestration Engine",
+      "entry_points": [
+        "src/main/java/com/example/batch/BatchApplication.java"
+      ],
+      "key_paths": [
+        "src/main/java/com/example/batch/job/config",
+        "src/main/java/com/example/batch/job/service",
+        "src/main/resources/application.yml"
+      ]
+    }
+  ],
+  "stats": {
+    "total_files": 60,
+    "scanned_files": 10,
+    "coverage_percent": 16.6
+  },
+  "scan_status": {
+      "truncated": false
+  }
+}
