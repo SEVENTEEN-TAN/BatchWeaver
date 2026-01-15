@@ -1,4 +1,4 @@
-package com.example.batch.job.chunk;
+package com.example.batch.job.service.chunk;
 
 import org.springframework.batch.item.ItemReader;
 import org.springframework.jdbc.core.JdbcTemplate;

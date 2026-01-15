@@ -1,7 +1,0 @@
-<job id="chunkJob">
-    <step id="chunkStep" type="chunk" commitInterval="500" pageSize="500"
-          readerClass="com.example.batch.job.chunk.CursorUserReader"
-          processorClass="com.example.batch.job.chunk.UppercaseUsernameProcessor"
-          writerClass="com.example.batch.job.chunk.UserUpdateWriter"/>
-</job>
-

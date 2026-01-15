@@ -1,4 +1,4 @@
-package com.example.batch.job.transfer;
+package com.example.batch.job.service.transfer;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.StepContribution;

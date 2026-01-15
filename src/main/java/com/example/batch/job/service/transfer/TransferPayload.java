@@ -1,4 +1,4 @@
-package com.example.batch.job.transfer;
+package com.example.batch.job.service.transfer;
 
 import java.io.Serializable;
 

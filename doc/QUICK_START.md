@@ -1,133 +1,222 @@
-# 快速开始文档
+# 快速开始指南
 
 ## 环境准备
-1. **数据库**: 确保 SQL Server 2022 已启动。
-2. **初始化**: 运行 `scripts/init.sql` 创建必要的表结构。
-3. **配置**: 检查 `src/main/resources/application.yml` 中的数据库连接信息。
 
-## 运行 Job
+### 系统要求
+- **JDK**: 21+
+- **Maven**: 3.6+
+- **SQL Server**: 2022 或兼容版本
+- **IDE**: IntelliJ IDEA / Eclipse（推荐 IDEA）
 
-本项目支持通过命令行参数指定要运行的 Job。启动程序会自动根据环境（IDE 或 CLI）进行适配。
+### 数据库初始化
 
-### 1. 运行 Demo Job (数据流转)
-该 Job 演示了数据的导入、更新和导出流程。
+1. 连接到 SQL Server:
+```bash
+sqlcmd -S localhost -U sa -P YourPassword
+```
+
+2. 创建数据库:
+```sql
+CREATE DATABASE BatchWeaverDB;
+GO
+```
+
+3. 执行初始化脚本:
+```bash
+USE BatchWeaverDB;
+GO
+:r scripts/init.sql
+GO
+```
+
+### 配置数据库连接
+
+编辑 `src/main/resources/application.yml`:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=BatchWeaverDB;encrypt=true;trustServerCertificate=true
+    username: sa
+    password: YourStrong!Passw0rd
+```
+
+---
+
+## 运行示例
+
+### 1. 编译打包
 
 ```bash
-# 运行方式 1: IDE 参数
-# IDE 模式下，如果不提供 id，会自动注入默认 id 以便调试
-Program arguments: jobName=demoJob
+mvn clean package -DskipTests
+```
 
-# 运行方式 2: 命令行 (CLI)
-# 不提供 id 参数时，系统会自动使用当前时间戳作为 id，创建一个新的 Job 实例
+### 2. 运行 Demo Job（数据流转）
+
+```bash
+# 自动生成 ID (新实例)
 java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=demoJob
+
+# 指定 ID
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=demoJob id=10001
 ```
 
-**预期结果**:
-- `DEMO_USER` 表中新增模拟数据。
-- 控制台打印导入、更新、导出的日志信息。
+**功能**: 演示基础的 Import -> Update -> Export 流程
 
-### 2. 运行 Breakpoint Job (断点续传)
-该 Job 模拟任务执行失败，并演示 Spring Batch 的断点续传机制。
-
-#### 断点续传原理
-Spring Batch 通过 `JobParameters` 来识别 Job 实例。在本项目中，我们统一使用 `id` 参数作为唯一标识：
-- **指定相同的 id** = 同一个 Job 实例 → 失败后可以续传 (Resume)
-- **指定新的 id (或不传)** = 新的 Job 实例 → 从头开始执行 (New Instance)
-
-#### 步骤 1: 首次运行 (模拟失败)
-为了演示断点续传，我们需要显式指定一个 ID，以便后续引用。
+### 3. 运行 Breakpoint Job（断点续传）
 
 ```bash
-# 使用固定 ID 运行
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
-```
-- **现象**: 任务在 Step 2 抛出异常并失败
-- **数据库**: `BATCH_JOB_EXECUTION` 表中该任务状态为 `FAILED`
-- **文件**: 在项目根目录生成 `breakpoint_marker.tmp` 标记文件
+# 首次运行（预期失败）
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=20001
 
-#### 步骤 2: 再次运行 (断点续传)
+# 再次运行（自动续传）
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=20001
+```
+
+**功能**: 演示失败重启机制
+
+### 4. 运行 Transfer Job（参数传递）
+
 ```bash
-# 使用相同的 ID 再次运行，Spring Batch 会自动识别并重启
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=10001
-```
-- **现象**: 
-  - Spring Batch 检测到 ID 为 10001 的失败实例
-  - 自动跳过已成功的 Step 1
-  - 从失败的 Step 2 重新开始执行
-  - 检测到标记文件存在，不再抛出异常
-  - 继续执行 Step 3，任务成功完成
-- **数据库**: 
-  - 同一个 `JOB_EXECUTION_ID` 的状态更新为 `COMPLETED`
-  - `BATCH_STEP_EXECUTION` 表中可以看到 Step 1 只执行了一次，Step 2 执行了两次
-
-#### 步骤 3: 强制创建新实例
-```bash
-# 如果想从头开始执行新的任务，只需不传 id (自动生成) 或传入新 id
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob
-# 或者
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=20002
-```
-- **现象**: 创建新的 Job 实例，从 Step 1 开始执行
-- **注意**: 需要先删除 `breakpoint_marker.tmp` 文件，否则不会触发失败
-
-### 3. Step 参数/对象传递示例（transferJob）
-使用 `ExecutionContext` 在 Step 间传递数据：
-
-```xml
-
-<job id="transferJob">
-    <step id="produce">
-        <className>com.example.batch.job.transfer.TransferService</className>
-        <methodName>step1Produce</methodName>
-    </step>
-    <step id="consume">
-        <className>com.example.batch.job.transfer.TransferService</className>
-        <methodName>step2Consume</methodName>
-    </step>
-</job>
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=transferJob id=30001
 ```
 
-业务方法签名：
-```java
-public void step1Produce(StepContribution c, ChunkContext x) {
-  var job = x.getStepContext().getStepExecution().getJobExecution();
-  var ctx = job.getExecutionContext();
-  ctx.put("note", "from-step1");
-}
-public void step2Consume(StepContribution c, ChunkContext x) {
-  var ctx = x.getStepContext().getStepExecution().getJobExecution().getExecutionContext();
-  var note = (String) ctx.get("note");
-}
-```
+**功能**: 演示 Step 间通过 `ExecutionContext` 传递数据
 
-运行示例：
-```bash
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=transferJob id=10001
-```
+### 5. 运行 Chunk Job（分批处理）
 
-### 4. 分批处理（chunkJob）
-当数据量较大时，推荐使用 chunk 模式按批次提交事务：
-
-```xml
-
-<job id="chunkJob">
-    <step id="chunkStep" type="chunk" commitInterval="500" pageSize="500"
-          readerClass="com.example.batch.job.chunk.CursorUserReader"
-          processorClass="com.example.batch.job.chunk.UppercaseUsernameProcessor"
-          writerClass="com.example.batch.job.chunk.UserUpdateWriter"/>
-</job>
-```
-
-- `commitInterval`：每批处理条数；提交一次事务形成检查点
-- `pageSize`：Reader 每次分页读取条数
-- Reader/Processor/Writer：分别负责读取、逐条加工、批量写入
-
-运行：
 ```bash
 java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=chunkJob
 ```
-效果：缩短锁持有时间，提高吞吐；失败仅影响当前批次，重跑从最近提交处继续。
 
-## 常用命令
-- **打包**: `mvn clean package -DskipTests`
-- **清理**: `mvn clean`
+**功能**: 演示 Chunk 模式的批量读取、处理、写入
+
+### 6. 运行 Conditional Job（条件流）
+
+```bash
+# 成功路径 (Step 1 -> Step 2)
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=conditionalJob
+
+# 失败路径 (Step 1 -> Step 3)
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=conditionalJob fail=true
+```
+
+**功能**: 演示基于 Step 执行状态的条件跳转
+
+---
+
+## IDE 运行（IntelliJ IDEA）
+
+### 方式一: 直接运行
+
+1. 打开 `BatchApplication.java`
+2. 点击 `main` 方法旁的运行按钮
+3. IDE 会自动注入默认参数 (`jobName=demoJob`)
+
+### 方式二: 配置参数
+
+1. 打开 Run/Debug Configurations
+2. 在 Program Arguments 中添加:
+   ```
+   jobName=demoJob id=10001
+   ```
+3. 运行
+
+---
+
+## 开发新 Job
+
+### Step 1: 创建业务 Service
+
+在 `src/main/java/com/example/batch/job/service/myfeature/` 下创建:
+
+```java
+package com.example.batch.job.service.myfeature;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class MyService {
+    public void processData() {
+        System.out.println("Processing data...");
+    }
+}
+```
+
+### Step 2: 创建 Job 配置
+
+在 `src/main/java/com/example/batch/job/config/` 下创建:
+
+```java
+package com.example.batch.job.config;
+
+import com.example.batch.job.service.myfeature.MyService;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.PlatformTransactionManager;
+
+@Configuration
+public class MyJobConfig {
+
+    @Bean
+    public Job myJob(JobRepository jobRepository, Step myStep) {
+        return new JobBuilder("myJob", jobRepository)
+                .start(myStep)
+                .build();
+    }
+
+    @Bean
+    public Step myStep(JobRepository jobRepository,
+                       PlatformTransactionManager txManager,
+                       MyService myService) {
+        return new StepBuilder("myStep", jobRepository)
+                .tasklet((contribution, chunkContext) -> {
+                    myService.processData();
+                    return RepeatStatus.FINISHED;
+                }, txManager)
+                .build();
+    }
+}
+```
+
+### Step 3: 运行
+
+```bash
+mvn clean package -DskipTests
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=myJob
+```
+
+---
+
+## 常见问题
+
+### Q: 如何查看 Job 执行历史？
+
+```sql
+SELECT * FROM BATCH_JOB_EXECUTION ORDER BY START_TIME DESC;
+```
+
+### Q: 如何重跑失败的 Job？
+
+使用相同的 `id` 参数重新运行即可自动续传。
+
+### Q: 如何传递自定义参数？
+
+```bash
+java -jar app.jar jobName=myJob param1=value1 param2=value2
+```
+
+在 Service 中通过 `JobParameters` 获取:
+```java
+var params = chunkContext.getStepContext()
+                         .getStepExecution()
+                         .getJobExecution()
+                         .getJobParameters();
+String param1 = params.getString("param1");
+```

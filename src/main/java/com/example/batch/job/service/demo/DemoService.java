@@ -1,4 +1,4 @@
-package com.example.batch.job.demo;
+package com.example.batch.job.service.demo;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;

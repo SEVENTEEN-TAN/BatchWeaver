@@ -1,71 +1,132 @@
 # 框架设计文档
 
 ## 核心设计理念
-本项目采用**动态配置驱动**的设计模式，旨在降低 Spring Batch Job 的开发和维护成本。通过 XML 定义 Job 流程，结合反射机制自动执行业务逻辑，实现了 Job 定义与代码实现的解耦。
+
+本项目采用 **原生 Spring Batch 5.0 Java Configuration** 设计模式，遵循 Spring Boot 最佳实践，通过 `@Configuration` 和 `@Bean` 进行 Job 编排，实现类型安全和编译时检查。
+
+## 架构分层
+
+### 1. Config 层 (`job/config`)
+- **职责**: Job 和 Step 的配置与编排
+- **特点**: 纯配置代码，无业务逻辑
+- **示例**: `DemoJobConfig`, `ChunkJobConfig`
+
+### 2. Service 层 (`job/service`)
+- **职责**: 业务逻辑实现
+- **特点**: 标准 Spring `@Service`，可独立测试
+- **示例**: `DemoService`, `TransferService`
+
+### 3. Core 层 (`core`)
+- **职责**: 框架核心功能
+- **组件**: `DynamicJobRunner` (统一启动入口)
 
 ## 核心组件
 
-### 1. XmlJobParser
-- **功能**: 负责启动时扫描 `classpath:jobs/*.xml` 文件。
-- **原理**: 使用 Jackson XML 解析器将 XML 转换为 Java 对象 (`JobXml`, `StepXml`)，然后通过 Spring Batch 的 `JobBuilder` 和 `StepBuilder` 动态构建 Job 实例并注册到 Spring 容器中。
-- **优势**: 新增 Job 无需修改 Java 代码，只需添加 XML 配置文件。
-
-### 2. ReflectionTasklet
-- **功能**: 通用的 Tasklet 实现，用于执行具体的业务逻辑。
-- **原理**: 
-    - 接收 XML 中配置的 `className` 和 `methodName`。
-    - 在运行时通过反射（Reflection）实例化目标类（或从 Spring 容器获取 Bean）并调用指定方法。
-    - 支持将 XML 中的 `properties` 注入到方法参数或 Bean 属性中。
-- **优势**: 开发者只需编写普通的 Java Service 方法，无需实现复杂的 Spring Batch 接口。
-
-### 3. DynamicJobRunner
-- **功能**: 统一的 Job 启动入口，封装了参数处理和异常捕获逻辑。
+### DynamicJobRunner
+- **功能**: 统一的 Job 启动入口，封装参数处理和异常捕获
 - **ID 策略**:
-    - **自动生成**: 如果启动参数中未包含 `id`，Runner 会自动使用当前时间戳生成 `id`，从而确保创建新的 Job Instance。
-    - **指定 ID**: 如果参数中包含 `id`，Runner 会使用该 ID 尝试启动 Job。如果该 ID 对应的 Job Instance 已存在且已完成，则跳过执行；如果已失败，则尝试断点续传。
-- **优势**: 简化了 Job 的重试和新实例创建逻辑，对用户透明。
+    - **自动生成**: 未传 `id` 时使用时间戳创建新实例
+    - **指定 ID**: 传入 `id` 时尝试重启或续传
+- **优势**: 简化重试和新实例创建逻辑
 
-### 4. BatchApplication (启动器)
-- **功能**: 程序的 main 入口，负责环境检测和参数预处理。
+### BatchApplication (启动器)
+- **功能**: 程序入口，环境检测和参数预处理
 - **环境适配**:
-    - **IDE 模式**: 检测到 IDE 环境（如 IntelliJ IDEA）时，如果未提供参数，会自动注入默认的 `jobName` 和 `id`，方便开发调试。
-    - **CLI 模式**: 生产环境下严格校验必要参数 (`jobName`)，并提供友好的使用提示。
+    - **IDE 模式**: 自动注入默认参数，方便调试
+    - **CLI 模式**: 严格校验参数，生产环境友好
 
-## 目录结构
-- `src/main/resources/jobs/`: 存放 Job 的 XML 配置文件。
-- `src/main/java/com/example/batch/job/`: 业务 Job 包（demo、breakpoint、transfer、chunk）。
-- `src/main/java/com/example/batch/core/`: 核心框架代码 (`XmlJobParser`, `ReflectionTasklet`, `DynamicJobRunner`)。
+## 项目结构
 
-## 扩展性
-- **新增业务**: 编写新的 Service 类 -> 在 XML 中配置新的 Step。
-- **新增流程**: 新建 XML 文件 -> 定义 Steps 顺序。
+```
+src/main/java/com/example/batch/
+├── job/
+│   ├── config/              # Job 配置层
+│   │   ├── DemoJobConfig.java
+│   │   ├── BreakpointJobConfig.java
+│   │   ├── TransferJobConfig.java
+│   │   ├── ChunkJobConfig.java
+│   │   └── ConditionalJobConfig.java
+│   └── service/             # 业务服务层
+│       ├── demo/
+│       ├── breakpoint/
+│       ├── transfer/
+│       └── chunk/
+└── core/                    # 框架核心
+    └── DynamicJobRunner.java
+```
 
 ## 参数传递机制
-- 运行时数据在 Step 间通过 `ExecutionContext` 共享：
-  - Job 级上下文：`jobExecution.getExecutionContext()`，所有 Step 可访问。
-  - Step 级上下文：`stepExecution.getExecutionContext()`，当前 Step 专用。
-- `JobParameters` 用于只读的实例标识与配置（例如 `id`），在运行期间不可修改。
-- 方法签名支持：
-  - 无参方法：`public void method()`（简单逻辑，不访问上下文）
-  - 带上下文方法：`public void method(StepContribution, ChunkContext)`（推荐，用于读写 ExecutionContext 与 JobParameters）
-- 典型用法：
-```
-public void step(StepContribution c, ChunkContext x) {
-  var job = x.getStepContext().getStepExecution().getJobExecution();
-  var ctx = job.getExecutionContext();
-  var id = job.getJobParameters().getLong("id");
-  ctx.put("batchId", id);
+
+### ExecutionContext
+- **Job 级上下文**: `jobExecution.getExecutionContext()` - 所有 Step 可访问
+- **Step 级上下文**: `stepExecution.getExecutionContext()` - 当前 Step 专用
+
+### JobParameters
+- **用途**: 只读的实例标识与配置（如 `id`）
+- **特点**: 运行期间不可修改
+
+### 方法签名
+```java
+// 推荐：带上下文方法
+public void method(StepContribution contribution, ChunkContext chunkContext) {
+    var jobExec = chunkContext.getStepContext()
+                              .getStepExecution()
+                              .getJobExecution();
+    var ctx = jobExec.getExecutionContext();
+    var id = jobExec.getJobParameters().getLong("id");
+    ctx.put("key", "value");
 }
 ```
 
 ## Chunk 步骤支持
-- XML 扩展字段：`type`、`commitInterval`、`pageSize`、`readerClass`、`processorClass`、`writerClass`
-- 解析构建：
-  - 当 `type=chunk` 或存在 `readerClass` 时，`XmlJobParser` 构建 `SimpleStepBuilder`：
-    - `chunk(commitInterval, transactionManager)`
-    - `reader(ItemReader)` / `processor(ItemProcessor)` / `writer(ItemWriter)`
-  - 组件实例化策略：优先从 Spring 容器获取；否则反射创建
-  - 自动注入：若组件存在 `setJdbcTemplate(JdbcTemplate)` 或 `setPageSize(int)` 方法，则自动注入容器中的 `JdbcTemplate` 与 XML 配置的 `pageSize`
-- 设计优势：
-  - 将大任务拆分为若干短事务，缩短锁持有时间，提高吞吐
-  - 每次提交形成检查点，失败仅影响当前批次，重跑可从最近提交处继续
+
+### 配置示例
+```java
+@Bean
+public Step chunkStep(JobRepository jobRepository,
+                      PlatformTransactionManager txManager,
+                      ItemReader reader,
+                      ItemProcessor processor,
+                      ItemWriter writer) {
+    return new StepBuilder("chunkStep", jobRepository)
+            .<Input, Output>chunk(500, txManager)
+            .reader(reader)
+            .processor(processor)
+            .writer(writer)
+            .build();
+}
+```
+
+### 设计优势
+- 将大任务拆分为短事务，缩短锁持有时间
+- 每次提交形成检查点，失败仅影响当前批次
+- 重跑可从最近提交处继续
+
+## 条件流支持
+
+### 配置示例
+```java
+@Bean
+public Job conditionalJob(JobRepository jobRepository,
+                          Step step1, Step step2, Step step3) {
+    return new JobBuilder("conditionalJob", jobRepository)
+            .start(step1)
+                .on("FAILED").to(step3)  // 失败跳转
+            .from(step1)
+                .on("*").to(step2)       // 成功继续
+            .end()
+            .build();
+}
+```
+
+## 扩展性
+
+### 新增业务
+1. 在 `service/` 下创建业务 Service
+2. 在 `config/` 下创建 Job 配置类
+3. 运行 `java -jar app.jar jobName=newJob`
+
+### 优势
+- **类型安全**: 编译时检查，避免运行时错误
+- **易于测试**: Service 层可独立单元测试
+- **IDE 友好**: 完整的代码提示和重构支持

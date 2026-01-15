@@ -1,4 +1,4 @@
-package com.example.batch.job.chunk;
+package com.example.batch.job.service.chunk;
 
 import org.springframework.batch.item.ItemProcessor;
 

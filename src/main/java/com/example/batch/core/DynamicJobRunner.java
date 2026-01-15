@@ -5,13 +5,14 @@ import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.Properties;
 
 @Slf4j
@@ -19,13 +20,11 @@ import java.util.Properties;
 public class DynamicJobRunner implements CommandLineRunner {
 
     private final JobLauncher jobLauncher;
-    private final XmlJobParser xmlJobParser;
-    private final JobExplorer jobExplorer;
+    private final ApplicationContext applicationContext;
 
-    public DynamicJobRunner(JobLauncher jobLauncher, XmlJobParser xmlJobParser, JobExplorer jobExplorer) {
+    public DynamicJobRunner(JobLauncher jobLauncher, ApplicationContext applicationContext) {
         this.jobLauncher = jobLauncher;
-        this.xmlJobParser = xmlJobParser;
-        this.jobExplorer = jobExplorer;
+        this.applicationContext = applicationContext;
     }
 
     @Override
@@ -38,19 +37,26 @@ public class DynamicJobRunner implements CommandLineRunner {
                 jobName = arg.split("=")[1];
             } else if (arg.contains("=")) {
                 String[] parts = arg.split("=");
-                params.put(parts[0], parts[1]);
+                if (parts.length >= 2) {
+                    params.put(parts[0], parts[1]);
+                }
             }
         }
 
         if (jobName == null) {
             log.info("No jobName provided in arguments. Skipping CLI job execution.");
-            log.info("Available jobs: {}", xmlJobParser.getAvailableJobNames());
+            String[] jobNames = applicationContext.getBeanNamesForType(Job.class);
+            log.info("Available jobs: {}", Arrays.toString(jobNames));
             return;
         }
 
-        Job job = xmlJobParser.getJob(jobName);
-        if (job == null) {
+        Job job;
+        try {
+            job = applicationContext.getBean(jobName, Job.class);
+        } catch (Exception e) {
             log.error("Job not found: {}", jobName);
+            String[] jobNames = applicationContext.getBeanNamesForType(Job.class);
+            log.info("Available jobs: {}", Arrays.toString(jobNames));
             return;
         }
 
