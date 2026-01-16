@@ -2,6 +2,7 @@ package com.example.batch.core.execution;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.stereotype.Service;
 
@@ -49,6 +50,10 @@ public class ExecutionModeValidator {
             case SKIP_FAIL -> validateSkipFailMode(id, metadata);
             case ISOLATED -> validateIsolatedMode(targetSteps, metadata, jobName);
         }
+
+        // 语义层面的统一出口日志，方便追踪一次执行的模式与关键参数
+        log.info("Execution mode validated: jobName={}, mode={}, id={}, targetSteps={}",
+            jobName, mode, id, targetSteps);
     }
 
     /**
@@ -84,10 +89,27 @@ public class ExecutionModeValidator {
             );
         }
 
-        // 检查历史执行是否已完成
+        // CHECK: Job 名称必须匹配，防止跨 Job 误续传
+        String historicalJobName = historicalExecution.getJobInstance().getJobName();
+        if (!historicalJobName.equals(jobName)) {
+            throw new ExecutionModeValidationException(
+                String.format("Job name mismatch for id=%d. Historical jobName='%s', requested='%s'.",
+                    id, historicalJobName, jobName)
+            );
+        }
+
+        // 检查历史执行是否已完成（保持原有友好提示）
         if (executionStatusService.isCompletedSuccessfully(historicalExecution)) {
             throw new ExecutionModeValidationException(
                 String.format("Job already completed successfully (id=%d). No steps to resume.", id)
+            );
+        }
+
+        // 仅允许从 FAILED 状态续传（STOPPED/ABANDONED 等其他状态视为非法）
+        if (historicalExecution.getStatus() != BatchStatus.FAILED) {
+            throw new ExecutionModeValidationException(
+                String.format("JobExecution[id=%d] status is %s, only FAILED is allowed for RESUME.",
+                    id, historicalExecution.getStatus())
             );
         }
 
@@ -106,7 +128,7 @@ public class ExecutionModeValidator {
             );
         }
 
-        // 检查是否有失败的 Step
+        // 检查是否有失败的 Step（理论上 FAILED 状态必然存在，但此处作为兜底防御）
         if (!executionStatusService.hasFailedSteps(historicalExecution)) {
             throw new ExecutionModeValidationException(
                 String.format("No failed steps found for id=%d. Nothing to resume.", id)
