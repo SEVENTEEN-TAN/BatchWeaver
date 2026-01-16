@@ -54,44 +54,12 @@ mvn clean package -DskipTests
 ### 2. 运行 Demo Job（数据流转）
 
 ```bash
-# 自动生成 ID (新实例)
 java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=demoJob
-
-# 指定 ID
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=demoJob id=10001
 ```
 
 **功能**: 演示基础的 Import -> Update -> Export 流程
 
-### 3. 运行 Breakpoint Job（断点续传）
-
-```bash
-# 首次运行（预期失败）
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=20001
-
-# 再次运行（自动续传）
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=breakpointJob id=20001
-```
-
-**功能**: 演示失败重启机制
-
-### 4. 运行 Transfer Job（参数传递）
-
-```bash
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=transferJob id=30001
-```
-
-**功能**: 演示 Step 间通过 `ExecutionContext` 传递数据
-
-### 5. 运行 Chunk Job（分批处理）
-
-```bash
-java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=chunkJob
-```
-
-**功能**: 演示 Chunk 模式的批量读取、处理、写入
-
-### 6. 运行 Conditional Job（条件流）
+### 3. 运行 Conditional Job（条件流）
 
 ```bash
 # 成功路径 (Step 1 -> Step 2)
@@ -105,22 +73,52 @@ java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=conditionalJob fail=tru
 
 ---
 
-## IDE 运行（IntelliJ IDEA）
+## 高级执行模式
 
-### 方式一: 直接运行
+支持 4 种执行模式，通过 `_mode` 参数控制：
 
-1. 打开 `BatchApplication.java`
-2. 点击 `main` 方法旁的运行按钮
-3. IDE 会自动注入默认参数 (`jobName=demoJob`)
+| 模式 | 说明 | ID 规则 |
+|------|------|---------|
+| STANDARD | 标准执行（默认） | 不能带 ID |
+| RESUME | 断点续传 | 必须带 ID |
+| SKIP_FAIL | 跳过失败继续 | 不能带 ID |
+| ISOLATED | 独立执行指定 Step | 带/不带均可 |
 
-### 方式二: 配置参数
+### STANDARD 模式（默认）
 
-1. 打开 Run/Debug Configurations
-2. 在 Program Arguments 中添加:
-   ```
-   jobName=demoJob id=10001
-   ```
-3. 运行
+```bash
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob
+```
+
+### RESUME 模式（断点续传）
+
+```bash
+# 第一次执行（模拟失败）
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob simulateFail=step3
+
+# 查询失败的 Execution ID（从元数据表）
+# SELECT JOB_EXECUTION_ID FROM BATCH_JOB_EXECUTION WHERE STATUS='FAILED'
+
+# 第二次执行（续传）
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=RESUME id=<查询到的ID>
+```
+
+### SKIP_FAIL 模式（容错执行）
+
+```bash
+# Step 失败会被跳过，继续执行后续 Step
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=SKIP_FAIL simulateFail=step3
+```
+
+### ISOLATED 模式（独立执行）
+
+```bash
+# 仅执行指定的 Step
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=ISOLATED _target_steps=advStep2
+
+# 执行多个 Step
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=ISOLATED _target_steps=advStep2,advStep3
+```
 
 ---
 
@@ -150,6 +148,7 @@ public class MyService {
 ```java
 package com.example.batch.job.config;
 
+import com.example.batch.core.execution.BatchJob;
 import com.example.batch.job.service.myfeature.MyService;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -162,6 +161,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
+@BatchJob(name = "myJob", steps = {"myStep"})  // 启用高级执行模式
 public class MyJobConfig {
 
     @Bean
@@ -202,9 +202,11 @@ java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=myJob
 SELECT * FROM BATCH_JOB_EXECUTION ORDER BY START_TIME DESC;
 ```
 
-### Q: 如何重跑失败的 Job？
+### Q: 如何查看失败的 Step？
 
-使用相同的 `id` 参数重新运行即可自动续传。
+```sql
+SELECT * FROM BATCH_STEP_EXECUTION WHERE STATUS = 'FAILED';
+```
 
 ### Q: 如何传递自定义参数？
 

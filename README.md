@@ -23,8 +23,10 @@
 - ✅ **类型安全**: 编译时检查，避免配置错误
 - ✅ **灵活编排**: 支持复杂的条件流（Conditional Flow）
 - ✅ **断点续传**: 原生支持失败重启机制
+- ✅ **高级执行控制**: 支持标准、断点续传、跳过失败、独立 Step 四种执行模式
 - ✅ **分层架构**: Config 层 + Service 层，职责清晰
 - ✅ **多数据源**: 集成 MyBatis-Flex，支持动态路由 4 个数据库
+- ✅ **高可观测性**: 启动契约 + 执行摘要，全链路日志追踪
 
 ---
 
@@ -51,12 +53,21 @@ src/main/java/com/example/batch/
 │   │   ├── BreakpointJobConfig.java
 │   │   ├── TransferJobConfig.java
 │   │   ├── ChunkJobConfig.java
-│   │   └── ConditionalJobConfig.java
-│   └── service/             # 业务服务层
-│       ├── demo/            # Demo Job 业务逻辑
-│       ├── breakpoint/      # 断点续传业务逻辑
-│       ├── transfer/        # 参数传递业务逻辑
-│       └── chunk/           # Chunk 处理业务逻辑
+│   │   ├── ConditionalJobConfig.java
+│   │   └── AdvancedControlJobConfig.java  # 🆕 高级执行控制
+│   ├── service/             # 业务服务层
+│   │   ├── demo/            # Demo Job 业务逻辑
+│   │   ├── breakpoint/      # 断点续传业务逻辑
+│   │   ├── transfer/        # 参数传递业务逻辑
+│   │   └── chunk/           # Chunk 处理业务逻辑
+│   ├── enums/               # 🆕 枚举定义
+│   │   └── ExecutionMode.java
+│   ├── decider/             # 🆕 流程决策器
+│   │   └── ExecutionModeDecider.java
+│   ├── validation/          # 🆕 参数校验
+│   │   └── AdvancedJobParametersValidator.java
+│   └── listener/            # 🆕 监听器
+│       └── ExecutionContextLogger.java
 └── core/                    # 框架核心
     └── DynamicJobRunner.java
 ```
@@ -134,7 +145,47 @@ scripts\demo-fail-resume.bat
   - 第一次运行：DB1/DB2 有数据，DB3/DB4 无数据
   - 元数据表记录 `db3Step=FAILED`
   - 第二次运行：仅执行 Step3/Step4，DB3/DB4 补充数据
+
+#### 运行 Advanced Control Job（高级执行控制）🆕
+
+`advancedControlJob` 支持 4 种执行模式，通过 `_mode` 参数控制：
+
+**1. 标准模式（STANDARD）**
+```bash
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob
+# 或显式指定
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=STANDARD
 ```
+
+**2. 断点续传模式（RESUME）**
+```bash
+# 第一次执行（模拟 Step3 失败）
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob simulateFail=step3
+
+# 第二次执行（从 Step3 继续，id 从元数据表查询）
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=RESUME id=1001
+```
+
+**3. 跳过失败模式（SKIP_FAIL）**
+```bash
+# Step3 失败会被标记为 SKIPPED，继续执行 Step4
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=SKIP_FAIL simulateFail=step3
+```
+
+**4. 独立 Step 模式（ISOLATED）**
+```bash
+# 仅执行 advStep2
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=ISOLATED _target_steps=advStep2
+
+# 执行多个 Step
+java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=ISOLATED _target_steps=advStep2,advStep3
+```
+
+**参数说明**：
+- `_mode`: 执行模式（`STANDARD`/`RESUME`/`SKIP_FAIL`/`ISOLATED`）
+- `_target_steps`: 独立模式下要执行的 Step（逗号分隔，如 `advStep1,advStep2`）
+- `id`: 历史 Execution ID（RESUME 模式必需，从元数据表查询）
+- `simulateFail`: 模拟失败的 Step（`step1`/`step2`/`step3`/`step4`）
 
 ---
 

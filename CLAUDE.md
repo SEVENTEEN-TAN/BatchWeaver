@@ -1,6 +1,7 @@
 # BatchWeaver Project Guide
 
 ## 变更记录 (Changelog)
+- **2026-01-15**: 新增高级执行控制功能（Advanced Control Job），支持 4 种执行模式
 - **2026-01-15**: 初始化 CLAUDE.md 文档，梳理项目架构与开发规范。
 
 ## 项目愿景
@@ -32,8 +33,11 @@ graph TD
 |---|---|---|
 | **Root** | 项目入口、构建配置 | `pom.xml`, `README.md` |
 | **Core** | 启动入口、动态调度器 | `src/main/java/com/example/batch/core` |
+| **Core Execution** | 执行模式框架（注解、校验、构建） | `src/main/java/com/example/batch/core/execution` |
 | **Job Config** | Job/Step 定义与编排 | `src/main/java/com/example/batch/job/config` |
 | **Job Service** | 具体的业务处理逻辑 | `src/main/java/com/example/batch/job/service` |
+| **Infrastructure** | 数据访问层（Mapper、Entity） | `src/main/java/com/example/batch/infrastructure` |
+| **Config** | Spring 配置（数据源、Batch） | `src/main/java/com/example/batch/config` |
 
 ## 运行与开发
 
@@ -52,6 +56,9 @@ graph TD
 - **构建**: `mvn clean package -DskipTests`
 - **运行 Demo**: `java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=demoJob`
 - **带参数运行**: `java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=conditionalJob fail=true`
+- **🆕 高级控制（断点续传）**: `java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=RESUME id=1001`
+- **🆕 高级控制（跳过失败）**: `java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=SKIP_FAIL simulateFail=step3`
+- **🆕 高级控制（独立 Step）**: `java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mode=ISOLATED _target_steps=advStep2`
 
 ## 测试策略
 - **单元测试**: 使用 JUnit 5 和 Mockito 对 Service 层进行独立测试。

@@ -1,5 +1,6 @@
 package com.example.batch.job.config;
 
+import com.example.batch.core.execution.BatchJob;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -13,6 +14,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 @Slf4j
 @Configuration
+@BatchJob(name = "conditionalJob", steps = {"step1", "step2", "step3"}, conditionalFlow = true)
 public class ConditionalJobConfig {
 
     @Bean

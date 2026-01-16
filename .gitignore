@@ -11,6 +11,7 @@ logs/
 .classpath
 .project
 .DS_Store
+.*
 
 # H2 数据库运行时文件
 data/*.mv.db

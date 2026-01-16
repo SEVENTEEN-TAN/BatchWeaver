@@ -1,5 +1,6 @@
 package com.example.batch.job.config;
 
+import com.example.batch.core.execution.BatchJob;
 import com.example.batch.job.service.demo.DemoService;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
+@BatchJob(name = "demoJob", steps = {"importStep", "updateStep", "exportStep"})
 public class DemoJobConfig {
 
     @Bean
