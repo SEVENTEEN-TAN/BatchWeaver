@@ -20,7 +20,7 @@ echo [执行] 运行作业（Step3 将抛出异常）...
 echo.
 
 java -jar target\batch-weaver-0.0.1-SNAPSHOT.jar ^
-  jobName=multiDataSourceJob ^
+  jobName=multiDsDemoJob ^
   simulateFail=true ^
   id=9999
 
@@ -50,7 +50,7 @@ echo ===============================================
 echo [阶段 2/2] 断点续传（修复后重跑）
 echo ===============================================
 echo.
-echo [说明] 使用相同的 jobName + id，但设置 simulateFail=false
+echo [说明] 使用 _mode=RESUME 和相同的 id 从失败点续传
 echo [预期] Spring Batch 将从 Step3 继续执行（跳过 Step1/2）
 echo.
 pause
@@ -60,8 +60,8 @@ echo [执行] 重新运行作业（不模拟失败）...
 echo.
 
 java -jar target\batch-weaver-0.0.1-SNAPSHOT.jar ^
-  jobName=multiDataSourceJob ^
-  simulateFail=false ^
+  jobName=multiDsDemoJob ^
+  _mode=RESUME ^
   id=9999
 
 echo.

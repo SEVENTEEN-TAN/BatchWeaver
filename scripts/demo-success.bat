@@ -11,7 +11,7 @@ echo ========================================
 echo 多数据源批处理作业 - 成功场景
 echo ========================================
 echo.
-echo [提示] 此脚本将运行 multiDataSourceJob
+echo [提示] 此脚本将运行 multiDsDemoJob
 echo [提示] simulateFail=false（Step3 不会失败）
 echo.
 pause
@@ -21,7 +21,7 @@ echo [执行] 正在启动作业...
 echo.
 
 java -jar target\batch-weaver-0.0.1-SNAPSHOT.jar ^
-  jobName=multiDataSourceJob ^
+  jobName=multiDsDemoJob ^
   simulateFail=false
 
 echo.

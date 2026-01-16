@@ -1,6 +1,6 @@
 # Demo Jobs 测试用例文档
 
-本文档包含 BatchWeaver Demo Jobs 的完整测试用例，覆盖 4 种执行模式、多数据源、条件流、数据传递等场景。
+本文档包含 BatchWeaver Demo Jobs 的完整测试用例，覆盖 4 种执行模式、多数据源、条件流、数据传递、Chunk 处理等场景。
 
 ---
 
@@ -11,7 +11,8 @@
 3. [skipFailDemoJob - 容错执行测试](#3-skipfaildemojob---容错执行测试)
 4. [dataTransferDemoJob - 跨库数据传递测试](#4-datatransferdemojob---跨库数据传递测试)
 5. [conditionalFlowDemoJob - 条件流测试](#5-conditionalflowdemojob---条件流测试)
-6. [验证 SQL 脚本](#验证-sql-脚本)
+6. [chunkJob - Chunk 处理模式测试](#6-chunkjob---chunk-处理模式测试)
+7. [验证 SQL 脚本](#验证-sql-脚本)
 
 ---
 
@@ -170,6 +171,49 @@ WHERE JOB_EXECUTION_ID = <ID> ORDER BY STEP_EXECUTION_ID;
 
 ---
 
+## 6. chunkJob - Chunk 处理模式测试
+
+**设计目标**：演示 Spring Batch 的 Reader-Processor-Writer (Chunk) 处理模式
+
+**处理流程**：
+- Reader: 从 db1 的 DEMO_USER 表分页读取数据
+- Processor: 将 USERNAME 转换为大写
+- Writer: 批量更新回数据库
+
+### 前置条件
+
+需要先执行其他 Job 插入测试数据，或手动插入：
+
+```sql
+-- 在 db1 (BatchWeaverDB) 中准备测试数据
+INSERT INTO DEMO_USER (USERNAME, EMAIL, STATUS) VALUES 
+('user1', 'user1@example.com', 'ACTIVE'),
+('user2', 'user2@example.com', 'ACTIVE'),
+('user3', 'user3@example.com', 'ACTIVE');
+```
+
+### 测试用例
+
+| 编号 | 测试场景 | 执行命令 | 预期结果 |
+|------|---------|---------|---------|
+| CH-01 | Chunk 处理 | `java -jar ... jobName=chunkJob` | USERNAME 全部转为大写 |
+
+### 验证方法
+
+```sql
+-- 验证 USERNAME 已转为大写
+SELECT ID, USERNAME, EMAIL FROM BatchWeaverDB.dbo.DEMO_USER;
+-- 预期：USERNAME 全部为大写（如 USER1, USER2, USER3）
+
+-- 检查 Step 统计信息
+SELECT READ_COUNT, WRITE_COUNT, COMMIT_COUNT 
+FROM BATCH_STEP_EXECUTION 
+WHERE JOB_EXECUTION_ID = <ID>;
+-- 预期：READ_COUNT = WRITE_COUNT = 记录数
+```
+
+---
+
 ## 验证 SQL 脚本
 
 ### 通用查询
@@ -235,28 +279,33 @@ echo Testing Demo Jobs
 echo ========================================
 
 echo.
-echo [1/5] multiDsDemoJob - STANDARD
+echo [1/6] multiDsDemoJob - STANDARD
 java -jar %JAR% jobName=multiDsDemoJob
 timeout /t 2 /nobreak > nul
 
 echo.
-echo [2/5] failureRecoveryDemoJob - STANDARD
+echo [2/6] failureRecoveryDemoJob - STANDARD
 java -jar %JAR% jobName=failureRecoveryDemoJob
 timeout /t 2 /nobreak > nul
 
 echo.
-echo [3/5] skipFailDemoJob - SKIP_FAIL
+echo [3/6] skipFailDemoJob - SKIP_FAIL
 java -jar %JAR% jobName=skipFailDemoJob _mode=SKIP_FAIL
 timeout /t 2 /nobreak > nul
 
 echo.
-echo [4/5] dataTransferDemoJob - STANDARD
+echo [4/6] dataTransferDemoJob - STANDARD
 java -jar %JAR% jobName=dataTransferDemoJob
 timeout /t 2 /nobreak > nul
 
 echo.
-echo [5/5] conditionalFlowDemoJob - flow=success
+echo [5/6] conditionalFlowDemoJob - flow=success
 java -jar %JAR% jobName=conditionalFlowDemoJob flow=success
+timeout /t 2 /nobreak > nul
+
+echo.
+echo [6/6] chunkJob - STANDARD
+java -jar %JAR% jobName=chunkJob
 timeout /t 2 /nobreak > nul
 
 echo.
@@ -270,13 +319,68 @@ pause
 
 ## 场景覆盖矩阵
 
-| 场景 | multiDsDemoJob | failureRecoveryDemoJob | skipFailDemoJob | dataTransferDemoJob | conditionalFlowDemoJob |
-|-----|:---:|:---:|:---:|:---:|:---:|
-| **STANDARD 模式** | ✅ M-01 | ✅ F-01 | - | ✅ D-01 | ✅ C-01/C-02 |
-| **RESUME 模式** | ✅ M-03 | ✅ F-03 | - | ✅ D-03 | - |
-| **SKIP_FAIL 模式** | ✅ M-04 | - | ✅ S-01/S-02/S-03 | - | ❌ C-03 |
-| **ISOLATED 模式** | ✅ M-05/M-06 | - | ✅ S-04 | - | ✅ C-04 |
-| **多数据源** | ✅ | ✅ | ✅ | ✅ | - |
-| **条件流** | - | - | - | - | ✅ |
-| **ExecutionContext** | - | - | - | ✅ | - |
-| **事务回滚** | ✅ | ✅ | ✅ | - | - |
+**标注说明**：
+- ✅ 已测试且通过验证
+- ⭕ 框架支持但测试用例未覆盖
+- ❌ 不支持（被框架拒绝或不适用）
+- `-` 不适用于该 Job
+
+| 场景 | multiDsDemoJob | failureRecoveryDemoJob | skipFailDemoJob | dataTransferDemoJob | conditionalFlowDemoJob | chunkJob |
+|-----|:---:|:---:|:---:|:---:|:---:|:---:|
+| **STANDARD 模式** | ✅ M-01 | ✅ F-01 | ⭕ | ✅ D-01 | ✅ C-01/C-02 | ✅ CH-01 |
+| **RESUME 模式** | ✅ M-03 | ✅ F-03 | ⭕ | ✅ D-03 | ⭕ | ⭕ |
+| **SKIP_FAIL 模式** | ✅ M-04 | ⭕ | ✅ S-01/S-02/S-03 | ⭕ | ❌ C-03 | ⭕ |
+| **ISOLATED 模式** | ✅ M-05/M-06 | ⭕ | ✅ S-04 | ⭕ | ✅ C-04 | ⭕ |
+| **多数据源** | ✅ | ✅ | ✅ | ✅ | - | - |
+| **条件流** | - | - | - | - | ✅ | - |
+| **ExecutionContext** | - | - | - | ✅ | - | - |
+| **事务回滚** | ✅ | ✅ | ✅ | - | - | - |
+| **Chunk 模式** | - | - | - | - | - | ✅ |
+
+---
+
+## Demo Jobs 清单
+
+| Job 名称 | 主要目的 | 执行模式 | 数据源 |
+|---------|---------|---------|--------|
+| multiDsDemoJob | 多数据源 + 4 模式全覆盖 | 全部 | db1→db2→db3→db4 |
+| failureRecoveryDemoJob | 失败恢复与事务回滚 | STANDARD/RESUME | db1→db2→db3→db4 |
+| skipFailDemoJob | 容错执行 + 多库 | SKIP_FAIL | db1→db2→db3→db4 |
+| dataTransferDemoJob | Step 间数据传递 + 跨库 | 全部 | db1→db2→db1 |
+| conditionalFlowDemoJob | 条件流 + 分支验证 | STANDARD/RESUME/ISOLATED | db1 |
+| chunkJob | Chunk 处理模式 | STANDARD | db1 |
+
+---
+
+## 数据库初始化
+
+### 初始化脚本
+
+| 脚本 | 用途 | 执行位置 |
+|-----|------|---------|
+| scripts/init.sql | 元数据表 + db1 业务表 | BatchWeaverDB |
+| scripts/init-business-table.sql | 业务表 | DB2_Business, DB3_Business, DB4_Business |
+
+### 执行顺序
+
+1. 在 **BatchWeaverDB** 执行 `init.sql`
+2. 在 **DB2_Business** 执行 `init-business-table.sql`
+3. 在 **DB3_Business** 执行 `init-business-table.sql`
+4. 在 **DB4_Business** 执行 `init-business-table.sql`
+
+### ⚠️ 重要：测试前置条件
+
+**每轮测试前必须清空 4 个数据库的 DEMO_USER 表**，否则以下测试用例的预期结果会失败：
+
+- **M-02、M-03**（multiDsDemoJob 失败恢复）：预期 db3 回滚后计数为 0
+- **F-02、F-03**（failureRecoveryDemoJob）：预期 db3 回滚后计数为 0
+- **S-02、S-03**（skipFailDemoJob）：预期跳过的数据库计数为 0
+
+**清库脚本示例**（在各数据库执行）：
+
+```sql
+-- 在 BatchWeaverDB, DB2_Business, DB3_Business, DB4_Business 分别执行
+TRUNCATE TABLE DEMO_USER;
+```
+
+**原因**：事务回滚只会撤销当前事务的插入，不会删除历史数据。如果表中存在旧数据，失败回滚后会恢复为旧数据（非 0），导致与测试预期不符。

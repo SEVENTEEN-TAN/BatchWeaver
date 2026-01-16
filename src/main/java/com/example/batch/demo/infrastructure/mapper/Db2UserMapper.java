@@ -35,4 +35,10 @@ public interface Db2UserMapper extends BaseMapper<DemoUserEntity> {
             "</foreach>" +
             "</script>")
     int bulkUpdateStatus(@Param("ids") List<Long> ids, @Param("status") String status);
+
+    /**
+     * 清空表（用于 Demo 演示）
+     */
+    @Update("TRUNCATE TABLE DEMO_USER")
+    void truncate();
 }
