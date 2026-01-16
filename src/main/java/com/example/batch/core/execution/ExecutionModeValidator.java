@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +21,15 @@ public class ExecutionModeValidator {
 
     private final JobMetadataRegistry jobMetadataRegistry;
     private final ExecutionStatusService executionStatusService;
+
+    @PostConstruct
+    public void warnAboutStepsOrder() {
+        log.warn("========================================");
+        log.warn("@BatchJob.steps 顺序依赖警告");
+        log.warn("RESUME 和 SKIP_FAIL 模式依赖 steps 数组的顺序决定续传/容错执行路径");
+        log.warn("请确保 @BatchJob.steps 顺序与 Job 实际执行顺序严格一致");
+        log.warn("========================================");
+    }
 
     /**
      * 校验执行模式参数
@@ -48,7 +58,7 @@ public class ExecutionModeValidator {
             case STANDARD -> validateStandardMode(id);
             case RESUME -> validateResumeMode(id, jobName);
             case SKIP_FAIL -> validateSkipFailMode(id, metadata);
-            case ISOLATED -> validateIsolatedMode(targetSteps, metadata, jobName);
+            case ISOLATED -> validateIsolatedMode(targetSteps, metadata, jobName, id);
         }
 
         // 语义层面的统一出口日志，方便追踪一次执行的模式与关键参数
@@ -160,12 +170,13 @@ public class ExecutionModeValidator {
 
     /**
      * 校验 ISOLATED 模式
-     * 规则：必须有 _target_steps，Step 名称必须合法
+     * 规则：必须有 _target_steps，Step 名称必须合法；如携带 id，则必须存在且 jobName 匹配
      */
-    private void validateIsolatedMode(String targetSteps, 
-                                       JobMetadataRegistry.JobMetadata metadata, 
-                                       String jobName) throws ExecutionModeValidationException {
-        
+    private void validateIsolatedMode(String targetSteps,
+                                       JobMetadataRegistry.JobMetadata metadata,
+                                       String jobName,
+                                       Long id) throws ExecutionModeValidationException {
+
         if (targetSteps == null || targetSteps.trim().isEmpty()) {
             throw new ExecutionModeValidationException(
                 "ISOLATED mode requires '_target_steps' parameter."
@@ -186,6 +197,24 @@ public class ExecutionModeValidator {
                             step, jobName, metadata.steps())
                     );
                 }
+            }
+        }
+
+        // 如携带 id，则必须存在且 jobName 匹配
+        if (id != null) {
+            JobExecution historicalExecution = executionStatusService.getJobExecution(id);
+            if (historicalExecution == null) {
+                throw new ExecutionModeValidationException(
+                    String.format("No execution found for id=%d in ISOLATED mode.", id)
+                );
+            }
+
+            String historicalJobName = historicalExecution.getJobInstance().getJobName();
+            if (!historicalJobName.equals(jobName)) {
+                throw new ExecutionModeValidationException(
+                    String.format("Job name mismatch for id=%d in ISOLATED mode. Historical jobName='%s', requested='%s'.",
+                        id, historicalJobName, jobName)
+                );
             }
         }
     }

@@ -41,8 +41,8 @@ public @interface BatchJob {
 
     /**
      * Step 名称列表
-     * <p>仅用于 ISOLATED 模式校验 _target_steps 参数合法性</p>
-     * <p>不关心顺序，只需列出该 Job 中所有可用的 Step</p>
+     * <p>必须按照 Job 实际执行顺序列出所有 Step 名称</p>
+     * <p>RESUME、SKIP_FAIL 和 ISOLATED 模式依赖该顺序决定续传/容错执行路径</p>
      */
     String[] steps();
 

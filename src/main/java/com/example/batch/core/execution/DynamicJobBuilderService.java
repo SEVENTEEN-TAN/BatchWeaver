@@ -163,13 +163,16 @@ public class DynamicJobBuilderService {
 
         log.info("ISOLATED mode: executing steps: {}, historicalId: {}", stepsToExecute, historicalId);
 
-        // 构建只包含指定 Step 的线性 Flow
-        Flow flow = buildLinearFlow(jobName, stepsToExecute);
+        // 构建只包含指定 Step 的容错 Flow（中间 Step 失败不阻断后续 Step）
+        Flow flow = buildIsolatedFlow(jobName, stepsToExecute);
 
         JobBuilder jobBuilder = new JobBuilder(jobName + "_isolated", jobRepository);
         for (JobExecutionListener listener : listeners) {
             jobBuilder.listener(listener);
         }
+        
+        // 添加 ISOLATED 模式汇总监听器
+        jobBuilder.listener(new IsolatedSummaryListener());
         
         // 如果携带历史 ID，添加上下文加载监听器
         if (historicalId != null) {
@@ -187,7 +190,7 @@ public class DynamicJobBuilderService {
     }
 
     /**
-     * 构建线性 Flow（用于 ISOLATED 模式）
+     * 构建线性 Flow（用于 ISOLATED 模式的基础实现）
      */
     private Flow buildLinearFlow(String jobName, List<String> stepNames) throws JobExecutionException {
         if (stepNames == null || stepNames.isEmpty()) {
@@ -202,6 +205,43 @@ public class DynamicJobBuilderService {
         for (int i = 1; i < stepNames.size(); i++) {
             Step step = getStepBean(stepNames.get(i));
             flowBuilder.next(step);
+        }
+
+        return flowBuilder.build();
+    }
+
+    /**
+     * 构建 ISOLATED 模式专用 Flow
+     * 关键点：中间 Step 无论成功/失败都不中断后续 Step
+     */
+    private Flow buildIsolatedFlow(String jobName, List<String> stepNames) throws JobExecutionException {
+        if (stepNames == null || stepNames.isEmpty()) {
+            throw new JobExecutionException("stepNames cannot be null or empty");
+        }
+
+        FlowBuilder<SimpleFlow> flowBuilder = new FlowBuilder<>(jobName + "_isolatedFlow");
+        List<Step> steps = new ArrayList<>();
+
+        for (String stepName : stepNames) {
+            steps.add(getStepBean(stepName));
+        }
+
+        if (steps.size() == 1) {
+            // 单个 Step：直接执行，由 Spring Batch 决定最终 Job 状态
+            flowBuilder.start(steps.get(0));
+            return flowBuilder.build();
+        }
+
+        // 多个 Step：构建不中断链
+        // Step1 --[任意状态]--> Step2 --[任意状态]--> Step3 ...
+        flowBuilder.start(steps.get(0));
+
+        for (int i = 0; i < steps.size() - 1; i++) {
+            Step currentStep = steps.get(i);
+            Step nextStep = steps.get(i + 1);
+
+            // 无论当前 Step 成功还是失败，都转到下一个 Step
+            flowBuilder.from(currentStep).on("*").to(nextStep);
         }
 
         return flowBuilder.build();
@@ -296,6 +336,33 @@ public class DynamicJobBuilderService {
                     failedSteps.size(), failedSteps
                 );
                 jobExecution.setExitStatus(new ExitStatus("COMPLETED", exitDescription));
+            }
+        }
+    }
+
+    /**
+     * ISOLATED 模式汇总监听器
+     * 在 Job 执行完成后汇总失败的 Step（仅日志，不修改 Job 状态）
+     */
+    @Slf4j
+    private static class IsolatedSummaryListener implements JobExecutionListener {
+
+        @Override
+        public void afterJob(JobExecution jobExecution) {
+            List<String> failedSteps = new ArrayList<>();
+            List<String> completedSteps = new ArrayList<>();
+
+            for (StepExecution stepExecution : jobExecution.getStepExecutions()) {
+                if (stepExecution.getStatus() == BatchStatus.FAILED) {
+                    failedSteps.add(stepExecution.getStepName());
+                } else if (stepExecution.getStatus() == BatchStatus.COMPLETED) {
+                    completedSteps.add(stepExecution.getStepName());
+                }
+            }
+
+            if (!failedSteps.isEmpty()) {
+                log.warn("ISOLATED mode summary: {} step(s) failed: {}", failedSteps.size(), failedSteps);
+                log.info("ISOLATED mode summary: {} step(s) completed successfully: {}", completedSteps.size(), completedSteps);
             }
         }
     }

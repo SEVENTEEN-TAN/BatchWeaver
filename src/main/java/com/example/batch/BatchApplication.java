@@ -14,14 +14,22 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class BatchApplication {
 
     /**
-     * 默认 Job 名称（当没有指定 jobName 参数时使用）
+     * IDE 调试默认参数（仅在检测到 IDE 环境时生效）
+     *
+     * <p>通过直接修改这些常量，可以在 IDE 中一键配置调试场景：</p>
+     * <ul>
+     *   <li>{@code IDE_DEFAULT_JOB_NAME}：默认 jobName（为空则不自动注入）</li>
+     *   <li>{@code IDE_DEFAULT_ID}：历史执行 id（例如 RESUME / ISOLATED 需要指定的 executionId）</li>
+     *   <li>{@code IDE_DEFAULT_MODE}：执行模式，例如 STANDARD / RESUME / SKIP_FAIL / ISOLATED</li>
+     *   <li>{@code IDE_DEFAULT_TARGET_STEPS}：ISOLATED 模式下的 _target_steps，示例："step1,step2"</li>
+     *   <li>{@code IDE_DEFAULT_SIMULATE_FAIL}：demo 用的 simulateFail 参数，示例："step2"</li>
+     * </ul>
      */
-    private static final String DEFAULT_JOB_NAME = "demoJob";
-
-    /**
-     * 需要重跑 Job ID（从断点异常处重跑）
-     */
-    private static final Long RUN_JOB_ID = null;
+    private static final String IDE_DEFAULT_JOB_NAME = "demoJob";
+    private static final Long   IDE_DEFAULT_ID = null;
+    private static final String IDE_DEFAULT_MODE = null;
+    private static final String IDE_DEFAULT_TARGET_STEPS = null;
+    private static final String IDE_DEFAULT_SIMULATE_FAIL = null;
 
     public static void main(String[] args) {
         // 1. 检测启动环境 (IDE vs CLI)
@@ -32,9 +40,15 @@ public class BatchApplication {
         // 2. 解析参数
         boolean hasJobName = false;
         boolean hasId = false;
+        boolean hasMode = false;
+        boolean hasTargetSteps = false;
+        boolean hasSimulateFail = false;
         for (String arg : args) {
             if (arg.startsWith("jobName=")) hasJobName = true;
             if (arg.startsWith("id=")) hasId = true;
+            if (arg.startsWith("_mode=")) hasMode = true;
+            if (arg.startsWith("_target_steps=")) hasTargetSteps = true;
+            if (arg.startsWith("simulateFail=")) hasSimulateFail = true;
         }
 
         java.util.List<String> finalArgs = new java.util.ArrayList<>(java.util.Arrays.asList(args));
@@ -43,13 +57,25 @@ public class BatchApplication {
         if (isIde) {
             // IDE模式：为了开发方便，如果没有提供参数，自动注入默认值
             log.info(">>> IDE Environment Detected <<<");
-            if (!hasJobName) {
-                log.info("IDE Mode: Auto-injecting jobName={}", DEFAULT_JOB_NAME);
-                finalArgs.add("jobName=" + DEFAULT_JOB_NAME);
+            if (!hasJobName && IDE_DEFAULT_JOB_NAME != null) {
+                log.info("IDE Mode: Auto-injecting jobName={}", IDE_DEFAULT_JOB_NAME);
+                finalArgs.add("jobName=" + IDE_DEFAULT_JOB_NAME);
             }
-            if (!hasId && RUN_JOB_ID != null) {
-                log.info("IDE Mode: Auto-injecting id={}", RUN_JOB_ID);
-                finalArgs.add("id=" + RUN_JOB_ID);
+            if (!hasId && IDE_DEFAULT_ID != null) {
+                log.info("IDE Mode: Auto-injecting id={}", IDE_DEFAULT_ID);
+                finalArgs.add("id=" + IDE_DEFAULT_ID);
+            }
+            if (!hasMode && IDE_DEFAULT_MODE != null) {
+                log.info("IDE Mode: Auto-injecting _mode={}", IDE_DEFAULT_MODE);
+                finalArgs.add("_mode=" + IDE_DEFAULT_MODE);
+            }
+            if (!hasTargetSteps && IDE_DEFAULT_TARGET_STEPS != null) {
+                log.info("IDE Mode: Auto-injecting _target_steps={}", IDE_DEFAULT_TARGET_STEPS);
+                finalArgs.add("_target_steps=" + IDE_DEFAULT_TARGET_STEPS);
+            }
+            if (!hasSimulateFail && IDE_DEFAULT_SIMULATE_FAIL != null) {
+                log.info("IDE Mode: Auto-injecting simulateFail={}", IDE_DEFAULT_SIMULATE_FAIL);
+                finalArgs.add("simulateFail=" + IDE_DEFAULT_SIMULATE_FAIL);
             }
         } else {
             // CLI模式：严格校验
