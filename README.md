@@ -47,29 +47,23 @@
 
 ```
 src/main/java/com/example/batch/
-├── job/
-│   ├── config/              # Job 配置层（纯配置）
-│   │   ├── DemoJobConfig.java
-│   │   ├── BreakpointJobConfig.java
-│   │   ├── TransferJobConfig.java
-│   │   ├── ChunkJobConfig.java
-│   │   ├── ConditionalJobConfig.java
-│   │   └── AdvancedControlJobConfig.java  # 🆕 高级执行控制
-│   ├── service/             # 业务服务层
-│   │   ├── demo/            # Demo Job 业务逻辑
-│   │   ├── breakpoint/      # 断点续传业务逻辑
-│   │   ├── transfer/        # 参数传递业务逻辑
-│   │   └── chunk/           # Chunk 处理业务逻辑
-│   ├── enums/               # 🆕 枚举定义
-│   │   └── ExecutionMode.java
-│   ├── decider/             # 🆕 流程决策器
-│   │   └── ExecutionModeDecider.java
-│   ├── validation/          # 🆕 参数校验
-│   │   └── AdvancedJobParametersValidator.java
-│   └── listener/            # 🆕 监听器
-│       └── ExecutionContextLogger.java
-└── core/                    # 框架核心
-    └── DynamicJobRunner.java
+├── BatchApplication.java          # Spring Boot 入口
+├── config/                        # 应用装配层（数据源、Batch 基础设施）
+│   ├── BatchConfig.java
+│   └── DataSourceConfig.java
+├── core/                          # 框架核心（与业务无关）
+│   ├── execution/                 # 执行模式 & 动态编排
+│   ├── runner/                    # CLI 启动入口
+│   ├── logging/                   # 日志 & 监控
+│   ├── env/                       # 环境变量解密等横切能力
+│   └── bootstrap/                 # 启动期辅助逻辑
+└── demo/                          # 示例业务（作业 & 数据访问）
+    ├── job/
+    │   ├── config/                # 各示例 Job 的编排配置
+    │   └── service/               # 示例 Job 的业务逻辑
+    └── infrastructure/            # 示例数据访问层
+        ├── entity/
+        └── mapper/
 ```
 
 ---
@@ -80,7 +74,7 @@ src/main/java/com/example/batch/
 
 ```bash
 git clone <repository-url>
-cd SpringBatch
+cd BatchWeaver
 ```
 
 ### 2. 初始化数据库
@@ -274,22 +268,22 @@ CREATE TABLE DEMO_USER (
 
 #### Step 1: 创建业务 Service
 
-在 `com.example.batch.job.service` 下创建业务逻辑：
+在 `com.example.batch.demo.job.service` 下创建业务逻辑：
 
 ```java
-package com.example.batch.job.service.myfeature;
+package com.example.batch.demo.job.service.myfeature;
 
 @Service
 public class MyService {
-    public void processData() {
-        // 业务逻辑
-    }
+  public void processData() {
+    // 业务逻辑
+  }
 }
 ```
 
 #### Step 2: 创建 Job 配置
 
-在 `com.example.batch.job.config` 下创建配置类：
+在 `com.example.batch.demo.job.config` 下创建配置类：
 
 ```java
 @Configuration
@@ -380,9 +374,9 @@ SELECT * FROM BATCH_JOB_EXECUTION WHERE STATUS = 'FAILED';
 
 | 文档 | 说明 |
 |------|------|
-| [框架设计文档](doc/FRAMEWORK_DESIGN.md) | 核心设计原理、组件说明 |
-| [快速开始指南](doc/QUICK_START.md) | 环境准备、运行示例 |
-| [元数据表说明](doc/METADATA_TABLES.md) | Spring Batch 元数据表结构 |
+| [执行模式文档](doc/EXECUTION_MODES.md) | 四种执行模式的语义、框架设计、流程图与规则说明 |
+| [快速开始指南](doc/QUICK_START.md) | 环境准备、运行示例、开发新 Job |
+| [元数据表说明](doc/METADATA_TABLES.md) | Spring Batch 元数据表结构与查询示例 |
 
 ---
 

@@ -39,7 +39,7 @@
    - 创建 `FlexDataSource` 路由器，注册 4 个数据源
    - 定义 4 个 `@Bean PlatformTransactionManager`（`db1TxManager~db4TxManager`）
    - 配置 `FlexSqlSessionFactory`
-   - 启用 `@MapperScan`（扫描 `com.example.batch.infrastructure.mapper`）
+   - 启用 `@MapperScan`（扫描 `com.example.batch.demo.infrastructure.mapper`）
 
 4. **创建 BatchConfig.java**
    - 继承 `DefaultBatchConfiguration`

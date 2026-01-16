@@ -126,10 +126,10 @@ java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mod
 
 ### Step 1: 创建业务 Service
 
-在 `src/main/java/com/example/batch/job/service/myfeature/` 下创建:
+在 `src/main/java/com/example/batch/demo/job/service/myfeature/` 下创建:
 
 ```java
-package com.example.batch.job.service.myfeature;
+package com.example.batch.demo.job.service.myfeature;
 
 import org.springframework.stereotype.Service;
 
@@ -143,13 +143,13 @@ public class MyService {
 
 ### Step 2: 创建 Job 配置
 
-在 `src/main/java/com/example/batch/job/config/` 下创建:
+在 `src/main/java/com/example/batch/demo/job/config/` 下创建:
 
 ```java
-package com.example.batch.job.config;
+package com.example.batch.demo.job.config;
 
 import com.example.batch.core.execution.BatchJob;
-import com.example.batch.job.service.myfeature.MyService;
+import com.example.batch.demo.job.service.myfeature.MyService;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
