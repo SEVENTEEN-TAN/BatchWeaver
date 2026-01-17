@@ -72,10 +72,13 @@ public class ExecutionModeValidator {
      */
     private void validateStandardMode(Long id) throws ExecutionModeValidationException {
         if (id != null) {
-            throw new ExecutionModeValidationException(
-                "STANDARD mode does not accept 'id' parameter. " +
-                "Use RESUME or ISOLATED for historical executions."
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "STANDARD mode does not accept 'id' parameter (found id=%d).\n" +
+                "  → STANDARD mode always creates a new execution.\n" +
+                "  → To resume a failed execution, use: _mode=RESUME id=%d\n" +
+                "  → To re-run specific steps, use: _mode=ISOLATED id=%d _target_steps=<stepNames>",
+                id, id, id
+            ));
         }
     }
 
@@ -86,63 +89,82 @@ public class ExecutionModeValidator {
     private void validateResumeMode(Long id, String jobName) throws ExecutionModeValidationException {
         if (id == null) {
             throw new ExecutionModeValidationException(
-                "RESUME mode requires 'id' parameter. " +
-                "Query failed execution ID from metadata table."
+                "RESUME mode requires 'id' parameter (JobExecution ID).\n" +
+                "  → Query failed execution from metadata table:\n" +
+                "     SELECT JOB_EXECUTION_ID, STATUS, START_TIME FROM BATCH_JOB_EXECUTION\n" +
+                "     WHERE JOB_NAME = '" + jobName + "' AND STATUS = 'FAILED'\n" +
+                "     ORDER BY START_TIME DESC"
             );
         }
 
         // 查询历史执行
         JobExecution historicalExecution = executionStatusService.getJobExecution(id);
         if (historicalExecution == null) {
-            throw new ExecutionModeValidationException(
-                String.format("No execution found for id=%d.", id)
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "No execution found for id=%d.\n" +
+                "  → Verify the execution ID exists in BATCH_JOB_EXECUTION table.\n" +
+                "  → Query: SELECT * FROM BATCH_JOB_EXECUTION WHERE JOB_EXECUTION_ID = %d",
+                id, id
+            ));
         }
 
         // CHECK: Job 名称必须匹配，防止跨 Job 误续传
         String historicalJobName = historicalExecution.getJobInstance().getJobName();
         if (!historicalJobName.equals(jobName)) {
-            throw new ExecutionModeValidationException(
-                String.format("Job name mismatch for id=%d. Historical jobName='%s', requested='%s'.",
-                    id, historicalJobName, jobName)
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "Job name mismatch for id=%d.\n" +
+                "  → Historical jobName: '%s'\n" +
+                "  → Requested jobName: '%s'\n" +
+                "  → RESUME requires matching job names to prevent cross-job resume.",
+                id, historicalJobName, jobName
+            ));
         }
 
         // 检查历史执行是否已完成（保持原有友好提示）
         if (executionStatusService.isCompletedSuccessfully(historicalExecution)) {
-            throw new ExecutionModeValidationException(
-                String.format("Job already completed successfully (id=%d). No steps to resume.", id)
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "Job already completed successfully (id=%d). No steps to resume.\n" +
+                "  → Use _mode=ISOLATED with _target_steps to re-run specific steps.",
+                id
+            ));
         }
 
         // 仅允许从 FAILED 状态续传（STOPPED/ABANDONED 等其他状态视为非法）
         if (historicalExecution.getStatus() != BatchStatus.FAILED) {
-            throw new ExecutionModeValidationException(
-                String.format("JobExecution[id=%d] status is %s, only FAILED is allowed for RESUME.",
-                    id, historicalExecution.getStatus())
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "JobExecution[id=%d] status is %s, only FAILED status is allowed for RESUME.\n" +
+                "  → RESUME mode can only continue from FAILED executions.\n" +
+                "  → Current status does not support automatic resume.",
+                id, historicalExecution.getStatus()
+            ));
         }
 
         // 检查历史执行模式
         String historicalMode = historicalExecution.getJobParameters().getString("_mode", "STANDARD");
         if ("SKIP_FAIL".equals(historicalMode)) {
-            throw new ExecutionModeValidationException(
-                String.format("Cannot RESUME after SKIP_FAIL execution (id=%d). " +
-                    "Use ISOLATED mode instead.", id)
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "Cannot RESUME after SKIP_FAIL execution (id=%d).\n" +
+                "  → SKIP_FAIL mode breaks the execution flow by skipping failures.\n" +
+                "  → Use _mode=ISOLATED _target_steps=<stepNames> to re-run specific steps.",
+                id
+            ));
         }
         if ("ISOLATED".equals(historicalMode)) {
-            throw new ExecutionModeValidationException(
-                String.format("Cannot RESUME after ISOLATED execution (id=%d). " +
-                    "Use ISOLATED mode instead.", id)
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "Cannot RESUME after ISOLATED execution (id=%d).\n" +
+                "  → ISOLATED mode executes steps independently, breaking flow continuity.\n" +
+                "  → Use _mode=ISOLATED id=%d _target_steps=<stepNames> to continue isolated execution.",
+                id, id
+            ));
         }
 
         // 检查是否有失败的 Step（理论上 FAILED 状态必然存在，但此处作为兜底防御）
         if (!executionStatusService.hasFailedSteps(historicalExecution)) {
-            throw new ExecutionModeValidationException(
-                String.format("No failed steps found for id=%d. Nothing to resume.", id)
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "No failed steps found for id=%d. Nothing to resume.\n" +
+                "  → This is unexpected for a FAILED execution. Check execution metadata.",
+                id
+            ));
         }
     }
 
@@ -150,21 +172,27 @@ public class ExecutionModeValidator {
      * 校验 SKIP_FAIL 模式
      * 规则：不能带 ID，不能用于条件流 Job
      */
-    private void validateSkipFailMode(Long id, JobMetadataRegistry.JobMetadata metadata) 
+    private void validateSkipFailMode(Long id, JobMetadataRegistry.JobMetadata metadata)
             throws ExecutionModeValidationException {
-        
+
         if (id != null) {
-            throw new ExecutionModeValidationException(
-                "SKIP_FAIL mode does not accept 'id' parameter. " +
-                "Use RESUME or ISOLATED for historical executions."
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "SKIP_FAIL mode does not accept 'id' parameter (found id=%d).\n" +
+                "  → SKIP_FAIL always creates a new execution that tolerates step failures.\n" +
+                "  → To resume a failed execution, use: _mode=RESUME id=%d\n" +
+                "  → To re-run specific steps from history, use: _mode=ISOLATED id=%d _target_steps=<stepNames>",
+                id, id, id
+            ));
         }
 
         if (metadata != null && metadata.conditionalFlow()) {
-            throw new ExecutionModeValidationException(
-                "SKIP_FAIL mode is not supported for conditional flow jobs. " +
-                "Use STANDARD or ISOLATED."
-            );
+            throw new ExecutionModeValidationException(String.format(
+                "SKIP_FAIL mode is not supported for conditional flow job '%s'.\n" +
+                "  → Conditional flows have complex branching logic that conflicts with skip-on-fail semantics.\n" +
+                "  → Use _mode=STANDARD for normal execution.\n" +
+                "  → Use _mode=ISOLATED _target_steps=<stepNames> to re-run specific steps.",
+                metadata.name()
+            ));
         }
     }
 
@@ -179,7 +207,11 @@ public class ExecutionModeValidator {
 
         if (targetSteps == null || targetSteps.trim().isEmpty()) {
             throw new ExecutionModeValidationException(
-                "ISOLATED mode requires '_target_steps' parameter."
+                "ISOLATED mode requires '_target_steps' parameter.\n" +
+                "  → Specify step names to execute (comma-separated):\n" +
+                "     jobName=" + jobName + " _mode=ISOLATED _target_steps=step1,step2\n" +
+                "  → To run with historical context:\n" +
+                "     jobName=" + jobName + " _mode=ISOLATED id=<executionId> _target_steps=step3"
             );
         }
 
@@ -192,10 +224,12 @@ public class ExecutionModeValidator {
 
             for (String step : requestedSteps) {
                 if (!metadata.steps().contains(step)) {
-                    throw new ExecutionModeValidationException(
-                        String.format("Invalid step name '%s'. Valid steps for job '%s': %s",
-                            step, jobName, metadata.steps())
-                    );
+                    throw new ExecutionModeValidationException(String.format(
+                        "Invalid step name '%s' for job '%s'.\n" +
+                        "  → Valid steps: %s\n" +
+                        "  → Check @BatchJob annotation or Job configuration.",
+                        step, jobName, metadata.steps()
+                    ));
                 }
             }
         }
@@ -204,17 +238,23 @@ public class ExecutionModeValidator {
         if (id != null) {
             JobExecution historicalExecution = executionStatusService.getJobExecution(id);
             if (historicalExecution == null) {
-                throw new ExecutionModeValidationException(
-                    String.format("No execution found for id=%d in ISOLATED mode.", id)
-                );
+                throw new ExecutionModeValidationException(String.format(
+                    "No execution found for id=%d in ISOLATED mode.\n" +
+                    "  → Verify the execution ID exists in BATCH_JOB_EXECUTION table.\n" +
+                    "  → Query: SELECT * FROM BATCH_JOB_EXECUTION WHERE JOB_EXECUTION_ID = %d",
+                    id, id
+                ));
             }
 
             String historicalJobName = historicalExecution.getJobInstance().getJobName();
             if (!historicalJobName.equals(jobName)) {
-                throw new ExecutionModeValidationException(
-                    String.format("Job name mismatch for id=%d in ISOLATED mode. Historical jobName='%s', requested='%s'.",
-                        id, historicalJobName, jobName)
-                );
+                throw new ExecutionModeValidationException(String.format(
+                    "Job name mismatch for id=%d in ISOLATED mode.\n" +
+                    "  → Historical jobName: '%s'\n" +
+                    "  → Requested jobName: '%s'\n" +
+                    "  → ISOLATED requires matching job names to load correct execution context.",
+                    id, historicalJobName, jobName
+                ));
             }
         }
     }

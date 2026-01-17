@@ -11,28 +11,28 @@ spring:
   datasource:
     # DB1: Primary (Spring Batch 元数据 + 业务数据)
     db1:
-      url: jdbc:sqlserver://127.0.0.1:1433;databaseName=DB1;encrypt=true;trustServerCertificate=true
+      url: jdbc:sqlserver://124.223.172.114:1433;databaseName=DB1;encrypt=true;trustServerCertificate=true
       username: sa
       password: YourStrong!Passw0rd
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
     # DB2: Business Only
     db2:
-      url: jdbc:sqlserver://127.0.0.1:1433;databaseName=DB2;encrypt=true;trustServerCertificate=true
+      url: jdbc:sqlserver://124.223.172.114:1433;databaseName=DB2;encrypt=true;trustServerCertificate=true
       username: sa
       password: YourStrong!Passw0rd
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
     # DB3: Business Only
     db3:
-      url: jdbc:sqlserver://127.0.0.1:1433;databaseName=DB3;encrypt=true;trustServerCertificate=true
+      url: jdbc:sqlserver://124.223.172.114:1433;databaseName=DB3;encrypt=true;trustServerCertificate=true
       username: sa
       password: YourStrong!Passw0rd
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
     # DB4: Business Only
     db4:
-      url: jdbc:sqlserver://127.0.0.1:1433;databaseName=DB4;encrypt=true;trustServerCertificate=true
+      url: jdbc:sqlserver://124.223.172.114:1433;databaseName=DB4;encrypt=true;trustServerCertificate=true
       username: sa
       password: YourStrong!Passw0rd
       driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver

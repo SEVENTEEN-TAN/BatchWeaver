@@ -5,6 +5,7 @@ import com.example.batch.core.logging.ExecutionContextLogger;
 import com.example.batch.core.execution.ExecutionMode;
 import com.example.batch.core.execution.ExecutionModeValidator;
 import com.example.batch.core.execution.JobMetadataRegistry;
+import com.example.batch.core.validation.JobParametersFormatValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
@@ -34,17 +35,20 @@ public class DynamicJobRunner implements CommandLineRunner {
     private final ApplicationContext applicationContext;
     private final DynamicJobBuilderService dynamicJobBuilderService;
     private final JobMetadataRegistry jobMetadataRegistry;
+    private final JobParametersFormatValidator parametersFormatValidator;
     private final ExecutionModeValidator executionModeValidator;
 
     public DynamicJobRunner(JobLauncher jobLauncher,
                             ApplicationContext applicationContext,
                             DynamicJobBuilderService dynamicJobBuilderService,
                             JobMetadataRegistry jobMetadataRegistry,
+                            JobParametersFormatValidator parametersFormatValidator,
                             ExecutionModeValidator executionModeValidator) {
         this.jobLauncher = jobLauncher;
         this.applicationContext = applicationContext;
         this.dynamicJobBuilderService = dynamicJobBuilderService;
         this.jobMetadataRegistry = jobMetadataRegistry;
+        this.parametersFormatValidator = parametersFormatValidator;
         this.executionModeValidator = executionModeValidator;
     }
 
@@ -76,17 +80,31 @@ public class DynamicJobRunner implements CommandLineRunner {
         // 解析执行模式和关键参数
         ExecutionMode mode = ExecutionMode.from(params.getProperty("_mode"));
         String targetSteps = params.getProperty("_target_steps");
-        Long id = params.containsKey("id") && isNumeric(params.getProperty("id")) 
-            ? Long.parseLong(params.getProperty("id")) 
-            : null;
+        String idStr = params.getProperty("id");
+        Long id = (idStr != null && isNumeric(idStr)) ? Long.parseLong(idStr) : null;
 
-        // [P2 优化] 先校验执行模式，再生成参数
+        // 【第一步】参数格式前置校验
+        log.info("=== Step 1: Parameter Format Validation ===");
+        JobParametersFormatValidator.ValidationResult formatValidation =
+            parametersFormatValidator.validate(jobName, mode, idStr, targetSteps);
+
+        if (!formatValidation.isSuccess()) {
+            log.error("Parameter format validation failed:");
+            log.error(formatValidation.getFormattedErrorMessage());
+            return;
+        }
+        log.info("Parameter format validation passed.");
+
+        // 【第二步】执行模式语义校验
+        log.info("=== Step 2: Execution Mode Semantic Validation ===");
         try {
             executionModeValidator.validate(jobName, mode, id, targetSteps);
         } catch (ExecutionModeValidator.ExecutionModeValidationException e) {
-            log.error("Validation failed: {}", e.getMessage());
+            log.error("Execution mode validation failed:");
+            log.error(e.getMessage());
             return;
         }
+        log.info("Execution mode validation passed.");
 
         // 校验通过后，构建 JobParameters
         JobParametersBuilder paramsBuilder = new JobParametersBuilder();
