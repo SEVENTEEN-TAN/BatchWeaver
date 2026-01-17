@@ -59,19 +59,19 @@ public class SkipFailDemoJobConfig {
      */
     @Bean
     public Step db1FetchStep(JobRepository jobRepository,
-                             @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                             @Qualifier("tm1") PlatformTransactionManager tm1,
                              SkipFailDemoService service) {
         return new StepBuilder("db1FetchStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 1: DB1 获取数据 ====================");
-                    
+
                     String simulateFail = (String) chunkContext.getStepContext()
                             .getJobParameters().get("simulateFail");
                     boolean shouldFail = shouldFailStep(simulateFail, "step1");
-                    
+
                     service.fetchDb1Data(shouldFail);
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm1)  // 使用 tm1
                 .build();
     }
 
@@ -83,19 +83,19 @@ public class SkipFailDemoJobConfig {
      */
     @Bean
     public Step db2ParseStep(JobRepository jobRepository,
-                             @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                             @Qualifier("tm2") PlatformTransactionManager tm2,
                              SkipFailDemoService service) {
         return new StepBuilder("db2ParseStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 2: DB2 解析数据 ====================");
-                    
+
                     String simulateFail = (String) chunkContext.getStepContext()
                             .getJobParameters().get("simulateFail");
                     boolean shouldFail = shouldFailStep(simulateFail, "step2");
-                    
+
                     service.parseDb2Data(shouldFail);
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm2)  // 使用 tm2
                 .build();
     }
 
@@ -107,19 +107,19 @@ public class SkipFailDemoJobConfig {
      */
     @Bean
     public Step db3ValidateStep(JobRepository jobRepository,
-                                @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                                @Qualifier("tm3") PlatformTransactionManager tm3,
                                 SkipFailDemoService service) {
         return new StepBuilder("db3ValidateStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 3: DB3 校验数据 ====================");
-                    
+
                     String simulateFail = (String) chunkContext.getStepContext()
                             .getJobParameters().get("simulateFail");
                     boolean shouldFail = shouldFailStep(simulateFail, "step3");
-                    
+
                     service.validateDb3Data(shouldFail);
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm3)  // 使用 tm3
                 .build();
     }
 
@@ -131,19 +131,19 @@ public class SkipFailDemoJobConfig {
      */
     @Bean
     public Step db4PersistStep(JobRepository jobRepository,
-                               @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                               @Qualifier("tm4") PlatformTransactionManager tm4,
                                SkipFailDemoService service) {
         return new StepBuilder("db4PersistStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 4: DB4 持久化 ====================");
-                    
+
                     String simulateFail = (String) chunkContext.getStepContext()
                             .getJobParameters().get("simulateFail");
                     boolean shouldFail = shouldFailStep(simulateFail, "step4");
-                    
+
                     service.persistDb4Data(shouldFail);
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm4)  // 使用 tm4
                 .build();
     }
 

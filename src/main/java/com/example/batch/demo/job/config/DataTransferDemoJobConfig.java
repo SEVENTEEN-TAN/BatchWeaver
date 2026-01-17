@@ -57,7 +57,7 @@ public class DataTransferDemoJobConfig {
      */
     @Bean
     public Step extractStep(JobRepository jobRepository,
-                            @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                            @Qualifier("tm1") PlatformTransactionManager tm1,
                             DataTransferDemoService service) {
         return new StepBuilder("extractStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
@@ -74,9 +74,9 @@ public class DataTransferDemoJobConfig {
                     
                     log.info("[ExecutionContext] 已写入 userIds: {}", userIds);
                     log.info("[ExecutionContext] 已写入 extractCount: {}", userIds.size());
-                    
+
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm1)  // 使用 tm1
                 .build();
     }
 
@@ -90,7 +90,7 @@ public class DataTransferDemoJobConfig {
     @Bean
     @SuppressWarnings("unchecked")
     public Step enrichStep(JobRepository jobRepository,
-                           @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                           @Qualifier("tm2") PlatformTransactionManager tm2,
                            DataTransferDemoService service) {
         return new StepBuilder("enrichStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
@@ -120,9 +120,9 @@ public class DataTransferDemoJobConfig {
                     ctx.putInt("enrichedCount", enrichedCount);
                     
                     log.info("[ExecutionContext] 已写入 enrichedCount: {}", enrichedCount);
-                    
+
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm2)  // 使用 tm2
                 .build();
     }
 
@@ -135,7 +135,7 @@ public class DataTransferDemoJobConfig {
     @Bean
     @SuppressWarnings("unchecked")
     public Step loadStep(JobRepository jobRepository,
-                         @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                         @Qualifier("tm1") PlatformTransactionManager tm1,
                          DataTransferDemoService service) {
         return new StepBuilder("loadStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
@@ -159,9 +159,9 @@ public class DataTransferDemoJobConfig {
                     
                     // 加载数据（更新状态）
                     service.loadUsers(userIds, enrichedCount);
-                    
+
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm1)  // 使用 tm1
                 .build();
     }
 }

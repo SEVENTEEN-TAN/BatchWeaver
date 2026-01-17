@@ -1,61 +1,52 @@
 package com.example.batch.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.batch.core.configuration.support.DefaultBatchConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
 /**
- * Spring Batch 配置类
+ * Spring Batch 元数据配置
  *
- * 核心功能：确保 Spring Batch 元数据操作使用独立的 DataSource 和 TransactionManager
- * 这样业务事务回滚时，不会影响 JobRepository 的元数据提交
+ * 核心功能：
+ * 1. 指定 Spring Batch 元数据（JobRepository）使用 ds1/tm1
+ * 2. 确保元数据与业务事务完全隔离
+ *
+ * 工作原理：
+ * - JobRepository 的所有操作（保存 JobInstance, StepExecution 等）使用 tm1
+ * - 当 Step 执行失败时，tm1 会以 REQUIRES_NEW 传播级别单独提交元数据
+ * - 这样即使业务事务回滚，元数据仍能正确记录失败状态
  */
 @Configuration
 public class BatchConfig extends DefaultBatchConfiguration {
 
+    private final DataSource ds1;
+    private final PlatformTransactionManager tm1;
+
     /**
-     * 为 Spring Batch 元数据创建独立的 DataSource
-     * 复用 mybatis-flex.datasource.db1 的配置
-     *
-     * 注意：此 DataSource 不参与 MyBatis-Flex 的多数据源路由
+     * 构造函数注入 ds1 和 tm1
      */
-    @Bean("batchMetadataDataSource")
-    @Primary
-    @ConfigurationProperties("mybatis-flex.datasource.db1")
-    public DataSource batchMetadataDataSource() {
-        return new HikariDataSource();
+    public BatchConfig(@Qualifier("ds1") DataSource ds1,
+                      @Qualifier("tm1") PlatformTransactionManager tm1) {
+        this.ds1 = ds1;
+        this.tm1 = tm1;
     }
 
     /**
-     * Spring Batch 元数据专用的事务管理器
-     */
-    @Bean("batchTransactionManager")
-    public PlatformTransactionManager batchTransactionManager() {
-        return new DataSourceTransactionManager(batchMetadataDataSource());
-    }
-
-    /**
-     * 重写父类方法，强制 JobRepository 使用 batchMetadataDataSource
-     * 确保元数据操作与业务事务完全隔离
+     * 重写父类方法，指定 JobRepository 使用 ds1
      */
     @Override
     protected DataSource getDataSource() {
-        return batchMetadataDataSource();
+        return ds1;
     }
 
     /**
-     * 重写父类方法，强制 JobRepository 使用 batchTransactionManager
+     * 重写父类方法，指定 JobRepository 使用 tm1
      */
     @Override
     protected PlatformTransactionManager getTransactionManager() {
-        return batchTransactionManager();
+        return tm1;
     }
 }

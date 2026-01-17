@@ -65,7 +65,7 @@ public class ConditionalFlowDemoJobConfig {
      */
     @Bean
     public Step initStep(JobRepository jobRepository,
-                         @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                         @Qualifier("tm1") PlatformTransactionManager tm1,
                          ConditionalFlowService service) {
         return new StepBuilder("initStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
@@ -88,7 +88,7 @@ public class ConditionalFlowDemoJobConfig {
                     }
                     
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm1)  // 使用 tm1
                 .build();
     }
 
@@ -99,14 +99,14 @@ public class ConditionalFlowDemoJobConfig {
      */
     @Bean
     public Step successPathStep(JobRepository jobRepository,
-                                @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                                @Qualifier("tm1") PlatformTransactionManager tm1,
                                 ConditionalFlowService service) {
         return new StepBuilder("successPathStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 2: 成功分支 ====================");
                     service.handleSuccess();
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm1)  // 使用 tm1
                 .build();
     }
 
@@ -117,14 +117,14 @@ public class ConditionalFlowDemoJobConfig {
      */
     @Bean
     public Step failurePathStep(JobRepository jobRepository,
-                                @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                                @Qualifier("tm1") PlatformTransactionManager tm1,
                                 ConditionalFlowService service) {
         return new StepBuilder("failurePathStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 3: 失败分支 ====================");
                     service.handleFailure();
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm1)  // 使用 tm1
                 .build();
     }
 
@@ -135,14 +135,14 @@ public class ConditionalFlowDemoJobConfig {
      */
     @Bean
     public Step commonStep(JobRepository jobRepository,
-                           @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                           @Qualifier("tm1") PlatformTransactionManager tm1,
                            ConditionalFlowService service) {
         return new StepBuilder("commonStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 4: 汇聚点 ====================");
                     service.summarize();
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm1)  // 使用 tm1
                 .build();
     }
 }

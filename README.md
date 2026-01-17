@@ -204,12 +204,12 @@ java -jar target/batch-weaver-0.0.1-SNAPSHOT.jar jobName=advancedControlJob _mod
 mybatis-flex:
   datasource:
     db1:
-      type: hikari
+     type: com.zaxxer.hikari.HikariDataSource
       url: jdbc:sqlserver://host:1433;databaseName=BatchWeaverDB;...
       username: sa
       password: ***
     db2:
-      type: hikari
+     type: com.zaxxer.hikari.HikariDataSource
       url: jdbc:sqlserver://host:1433;databaseName=DB2_Business;...
       # ...
 ```

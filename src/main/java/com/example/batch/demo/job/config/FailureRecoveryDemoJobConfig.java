@@ -55,14 +55,14 @@ public class FailureRecoveryDemoJobConfig {
      */
     @Bean
     public Step db1PrepareStep(JobRepository jobRepository,
-                               @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                               @Qualifier("tm1") PlatformTransactionManager tm1,
                                FailureRecoveryDemoService service) {
         return new StepBuilder("db1PrepareStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 1: DB1 准备（幂等） ====================");
                     service.prepareDb1Data();
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm1)  // 使用 tm1
                 .build();
     }
 
@@ -73,14 +73,14 @@ public class FailureRecoveryDemoJobConfig {
      */
     @Bean
     public Step db2UpdateStep(JobRepository jobRepository,
-                              @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                              @Qualifier("tm2") PlatformTransactionManager tm2,
                               FailureRecoveryDemoService service) {
         return new StepBuilder("db2UpdateStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 2: DB2 更新 ====================");
                     service.updateDb2Data();
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm2)  // 使用 tm2
                 .build();
     }
 
@@ -92,19 +92,19 @@ public class FailureRecoveryDemoJobConfig {
      */
     @Bean
     public Step db3RiskyStep(JobRepository jobRepository,
-                             @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                             @Qualifier("tm3") PlatformTransactionManager tm3,
                              FailureRecoveryDemoService service) {
         return new StepBuilder("db3RiskyStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 3: DB3 风险操作 ====================");
-                    
+
                     String simulateFail = (String) chunkContext.getStepContext()
                             .getJobParameters().get("simulateFail");
                     boolean shouldFail = "step3".equalsIgnoreCase(simulateFail);
-                    
+
                     service.riskyDb3Operation(shouldFail);
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm3)  // 使用 tm3
                 .build();
     }
 
@@ -115,14 +115,14 @@ public class FailureRecoveryDemoJobConfig {
      */
     @Bean
     public Step db4CompleteStep(JobRepository jobRepository,
-                                @Qualifier("businessTransactionManager") PlatformTransactionManager tx,
+                                @Qualifier("tm4") PlatformTransactionManager tm4,
                                 FailureRecoveryDemoService service) {
         return new StepBuilder("db4CompleteStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     log.info("\n==================== Step 4: DB4 完成 ====================");
                     service.completeDb4Data();
                     return RepeatStatus.FINISHED;
-                }, tx)
+                }, tm4)  // 使用 tm4
                 .build();
     }
 }

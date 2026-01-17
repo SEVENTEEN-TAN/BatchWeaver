@@ -6,6 +6,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,12 +25,13 @@ public class ChunkJobConfig {
     }
 
     @Bean
-    public Step chunkStep(JobRepository jobRepository, PlatformTransactionManager transactionManager,
+    public Step chunkStep(JobRepository jobRepository,
+                          @Qualifier("tm1") PlatformTransactionManager tm1,
                           CursorUserReader reader,
                           UppercaseUsernameProcessor processor,
                           UserUpdateWriter writer) {
         return new StepBuilder("chunkStep", jobRepository)
-                .<Map<String, Object>, Map<String, Object>>chunk(500, transactionManager)
+                .<Map<String, Object>, Map<String, Object>>chunk(500, tm1)  // 使用 tm1
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
