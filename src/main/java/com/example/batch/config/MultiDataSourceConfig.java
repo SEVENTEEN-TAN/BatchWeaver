@@ -49,6 +49,48 @@ public class MultiDataSourceConfig {
     @Value("${spring.datasource.db1.driver-class-name}")
     private String db1DriverClassName;
 
+    @Value("${spring.datasource.db1.hikari.maximum-pool-size:15}")
+    private int db1MaxPoolSize;
+
+    @Value("${spring.datasource.db1.hikari.minimum-idle:5}")
+    private int db1MinIdle;
+
+    @Value("${spring.datasource.db1.hikari.connection-timeout:10000}")
+    private long db1ConnectionTimeout;
+
+    // ==================== DB2 配置参数 ====================
+
+    @Value("${spring.datasource.db2.hikari.maximum-pool-size:10}")
+    private int db2MaxPoolSize;
+
+    @Value("${spring.datasource.db2.hikari.minimum-idle:3}")
+    private int db2MinIdle;
+
+    @Value("${spring.datasource.db2.hikari.connection-timeout:10000}")
+    private long db2ConnectionTimeout;
+
+    // ==================== DB3 配置参数 ====================
+
+    @Value("${spring.datasource.db3.hikari.maximum-pool-size:10}")
+    private int db3MaxPoolSize;
+
+    @Value("${spring.datasource.db3.hikari.minimum-idle:3}")
+    private int db3MinIdle;
+
+    @Value("${spring.datasource.db3.hikari.connection-timeout:10000}")
+    private long db3ConnectionTimeout;
+
+    // ==================== DB4 配置参数 ====================
+
+    @Value("${spring.datasource.db4.hikari.maximum-pool-size:10}")
+    private int db4MaxPoolSize;
+
+    @Value("${spring.datasource.db4.hikari.minimum-idle:3}")
+    private int db4MinIdle;
+
+    @Value("${spring.datasource.db4.hikari.connection-timeout:10000}")
+    private long db4ConnectionTimeout;
+
     @Bean("ds1")
     @Primary
     public DataSource ds1() {
@@ -58,14 +100,15 @@ public class MultiDataSourceConfig {
         config.setPassword(db1Password);
         config.setDriverClassName(db1DriverClassName);
         config.setPoolName("HikariPool-DB1");
-        config.setMaximumPoolSize(5);
-        config.setMinimumIdle(1);
-        config.setConnectionTimeout(30000);
+        config.setMaximumPoolSize(db1MaxPoolSize);
+        config.setMinimumIdle(db1MinIdle);
+        config.setConnectionTimeout(db1ConnectionTimeout);
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
         config.setConnectionTestQuery("SELECT 1");
 
-        log.info("初始化数据源 ds1 (DB1): {}", db1Url);
+        log.info("初始化数据源 ds1 (DB1): {} [maxPoolSize={}, minIdle={}, timeout={}ms]",
+            db1Url, db1MaxPoolSize, db1MinIdle, db1ConnectionTimeout);
         return new HikariDataSource(config);
     }
 
@@ -111,14 +154,15 @@ public class MultiDataSourceConfig {
         config.setPassword(db2Password);
         config.setDriverClassName(db2DriverClassName);
         config.setPoolName("HikariPool-DB2");
-        config.setMaximumPoolSize(5);
-        config.setMinimumIdle(1);
-        config.setConnectionTimeout(30000);
+        config.setMaximumPoolSize(db2MaxPoolSize);
+        config.setMinimumIdle(db2MinIdle);
+        config.setConnectionTimeout(db2ConnectionTimeout);
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
         config.setConnectionTestQuery("SELECT 1");
 
-        log.info("初始化数据源 ds2 (DB2): {}", db2Url);
+        log.info("初始化数据源 ds2 (DB2): {} [maxPoolSize={}, minIdle={}, timeout={}ms]",
+            db2Url, db2MaxPoolSize, db2MinIdle, db2ConnectionTimeout);
         return new HikariDataSource(config);
     }
 
@@ -161,14 +205,15 @@ public class MultiDataSourceConfig {
         config.setPassword(db3Password);
         config.setDriverClassName(db3DriverClassName);
         config.setPoolName("HikariPool-DB3");
-        config.setMaximumPoolSize(5);
-        config.setMinimumIdle(1);
-        config.setConnectionTimeout(30000);
+        config.setMaximumPoolSize(db3MaxPoolSize);
+        config.setMinimumIdle(db3MinIdle);
+        config.setConnectionTimeout(db3ConnectionTimeout);
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
         config.setConnectionTestQuery("SELECT 1");
 
-        log.info("初始化数据源 ds3 (DB3): {}", db3Url);
+        log.info("初始化数据源 ds3 (DB3): {} [maxPoolSize={}, minIdle={}, timeout={}ms]",
+            db3Url, db3MaxPoolSize, db3MinIdle, db3ConnectionTimeout);
         return new HikariDataSource(config);
     }
 
@@ -211,14 +256,15 @@ public class MultiDataSourceConfig {
         config.setPassword(db4Password);
         config.setDriverClassName(db4DriverClassName);
         config.setPoolName("HikariPool-DB4");
-        config.setMaximumPoolSize(5);
-        config.setMinimumIdle(1);
-        config.setConnectionTimeout(30000);
+        config.setMaximumPoolSize(db4MaxPoolSize);
+        config.setMinimumIdle(db4MinIdle);
+        config.setConnectionTimeout(db4ConnectionTimeout);
         config.setIdleTimeout(600000);
         config.setMaxLifetime(1800000);
         config.setConnectionTestQuery("SELECT 1");
 
-        log.info("初始化数据源 ds4 (DB4): {}", db4Url);
+        log.info("初始化数据源 ds4 (DB4): {} [maxPoolSize={}, minIdle={}, timeout={}ms]",
+            db4Url, db4MaxPoolSize, db4MinIdle, db4ConnectionTimeout);
         return new HikariDataSource(config);
     }
 
