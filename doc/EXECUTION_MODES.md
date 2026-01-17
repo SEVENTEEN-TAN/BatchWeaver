@@ -197,7 +197,7 @@ flowchart TD
     StdCheck -->|否| ExecStd["执行原生 Job Flow"]
     
     ResCheck -->|否| RejectRes["拒绝: RESUME 必须带 ID"]
-    ResCheck -->|是| CheckHistory{"查询历史模式"]
+    ResCheck -->|是| CheckHistory{"查询历史模式"}
     CheckHistory -->|SKIP_FAIL/ISOLATED| RejectResHist["拒绝: 流程已破坏"]
     CheckHistory -->|STANDARD/RESUME| CheckFailed{"有失败 Step?"}
     CheckFailed -->|否| RejectNoFail["拒绝: 无需续传"]
@@ -209,7 +209,7 @@ flowchart TD
     CheckCond -->|否| ExecSkip["构建容错 Flow<br/>失败跳过继续"]
     
     IsoCheck -->|否| RejectIso["拒绝: 缺少 _target_steps"]
-    IsoCheck -->|是| ValidateSteps{"校验 Step 名称"]
+    IsoCheck -->|是| ValidateSteps{"校验 Step 名称"}
     ValidateSteps -->|无效| RejectStep["拒绝: 无效 Step 名称"]
     ValidateSteps -->|有效| ExecIso["构建指定 Step Flow"]
     
