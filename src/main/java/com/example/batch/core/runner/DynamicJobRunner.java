@@ -17,6 +17,8 @@ import org.springframework.batch.core.repository.JobExecutionAlreadyRunningExcep
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
@@ -26,9 +28,11 @@ import java.util.Properties;
 /**
  * 动态 Job 运行器
  * 统一入口，支持 4 种执行模式
+ * 在 StartupMetadataListener 之后执行，确保元数据表已检查通过
  */
 @Slf4j
 @Component
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class DynamicJobRunner implements CommandLineRunner {
 
     private final JobLauncher jobLauncher;

@@ -3,14 +3,22 @@ package com.example.batch.core.bootstrap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 启动器前置检查
+ * 在所有 CommandLineRunner 中最先执行，检查 Spring Batch 元数据表是否存在
+ * 如果检查失败，将抛出异常阻止应用继续运行
  */
 @Slf4j
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class StartupMetadataListener implements CommandLineRunner {
 
     @Autowired
@@ -28,16 +36,47 @@ public class StartupMetadataListener implements CommandLineRunner {
     @Override
     public void run(String... args) {
         printAscii();
-        for (String t : TABLES) {
-            boolean ok = exists(t);
-            log.info("metadata table {} exists={}", t, ok);
-            if (!ok) {
-                log.error("metadata table missing: {}. apply scripts/init.sql", t);
+
+        log.info("========================================");
+        log.info("Checking Spring Batch metadata tables...");
+        log.info("========================================");
+
+        List<String> missingTables = new ArrayList<>();
+
+        for (String table : TABLES) {
+            boolean exists = checkTableExists(table);
+            if (exists) {
+                log.info("✓ metadata table {} exists", table);
+            } else {
+                log.error("✗ metadata table {} is MISSING", table);
+                missingTables.add(table);
             }
         }
+
+        if (!missingTables.isEmpty()) {
+            log.error("========================================");
+            log.error("FATAL: Missing {} metadata table(s): {}", missingTables.size(), missingTables);
+            log.error("========================================");
+            log.error("Action required:");
+            log.error("  1. Execute database initialization script:");
+            log.error("     → Run: scripts/init.sql");
+            log.error("  2. Or use Spring Batch schema initialization:");
+            log.error("     → Add to application.yml:");
+            log.error("       spring.batch.jdbc.initialize-schema: always");
+            log.error("========================================");
+
+            throw new IllegalStateException(
+                String.format("Spring Batch metadata tables are missing: %s. " +
+                    "Please run scripts/init.sql to initialize the database.", missingTables)
+            );
+        }
+
+        log.info("========================================");
+        log.info("All metadata tables verified successfully");
+        log.info("========================================");
     }
 
-    private boolean exists(String table) {
+    private boolean checkTableExists(String table) {
         try {
             jdbcTemplate.queryForObject("SELECT TOP 1 1 FROM " + table, Integer.class);
             return true;
