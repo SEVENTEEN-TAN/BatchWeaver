@@ -78,9 +78,12 @@ public class StartupMetadataListener implements CommandLineRunner {
 
     private boolean checkTableExists(String table) {
         try {
-            jdbcTemplate.queryForObject("SELECT TOP 1 1 FROM " + table, Integer.class);
-            return true;
+            String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES " +
+                         "WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = ?";
+            Integer count = jdbcTemplate.queryForObject(sql, Integer.class, table);
+            return count != null && count > 0;
         } catch (Exception e) {
+            log.debug("Error checking table existence for {}: {}", table, e.getMessage());
             return false;
         }
     }
