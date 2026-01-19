@@ -44,19 +44,19 @@ public class FileImportJobTemplate {
      * @return Step实例
      */
     public Step buildStep(FileImportJobDefinition definition) {
-        StepBuilder stepBuilder = new StepBuilder(definition.getStepName(), definition.getJobRepository())
-            .chunk(definition.getChunkSize(), definition.getTransactionManager())
+        var chunkBuilder = new StepBuilder(definition.getStepName(), definition.getJobRepository())
+            .<Object, Object>chunk(definition.getChunkSize(), definition.getTransactionManager())
             .reader(definition.getReader())
-            .writer(definition.getWriter());
+            .writer((org.springframework.batch.item.ItemWriter<? super Object>) definition.getWriter());
 
         // 可选：Processor
         if (definition.getProcessor() != null) {
-            stepBuilder.processor(definition.getProcessor());
+            chunkBuilder.processor((org.springframework.batch.item.ItemProcessor<? super Object, ? extends Object>) definition.getProcessor());
         }
 
         // 可选：头尾校验
         if (definition.getHeaderParser() != null || definition.getFooterParser() != null) {
-            stepBuilder.listener(new HeaderFooterListener(
+            chunkBuilder.listener(new HeaderFooterListener(
                 definition.getResource(),
                 definition.getHeaderParser(),
                 definition.getHeaderValidator(),
@@ -67,7 +67,7 @@ public class FileImportJobTemplate {
 
         // 错误处理
         if (definition.getSkipLimit() > 0) {
-            stepBuilder
+            chunkBuilder
                 .faultTolerant()
                 .skip(Exception.class)
                 .skipLimit(definition.getSkipLimit())
@@ -76,13 +76,13 @@ public class FileImportJobTemplate {
 
         // 可选：Retry
         if (definition.getRetryLimit() > 0) {
-            stepBuilder
+            chunkBuilder
                 .faultTolerant()
                 .retry(Exception.class)
                 .retryLimit(definition.getRetryLimit());
         }
 
-        return stepBuilder.build();
+        return chunkBuilder.build();
     }
 
     /**

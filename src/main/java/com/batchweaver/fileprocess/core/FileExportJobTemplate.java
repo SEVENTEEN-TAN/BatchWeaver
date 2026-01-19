@@ -49,28 +49,28 @@ public class FileExportJobTemplate {
         // 构建Writer
         FlatFileItemWriter<T> writer = buildWriter(definition);
 
-        StepBuilder stepBuilder = new StepBuilder(definition.getStepName(), definition.getJobRepository())
-            .chunk(definition.getChunkSize(), definition.getTransactionManager())
+        var chunkBuilder = new StepBuilder(definition.getStepName(), definition.getJobRepository())
+            .<T, T>chunk(definition.getChunkSize(), definition.getTransactionManager())
             .reader(definition.getReader())
             .writer(writer);
 
         // 错误处理
         if (definition.getSkipLimit() > 0) {
-            stepBuilder
+            chunkBuilder
                 .faultTolerant()
                 .skip(Exception.class)
                 .skipLimit(definition.getSkipLimit())
                 .listener(new UniversalErrorListener());
         }
 
-        return stepBuilder.build();
+        return chunkBuilder.build();
     }
 
     private <T> FlatFileItemWriter<T> buildWriter(FileExportJobDefinition<T> definition) {
         FlatFileItemWriterBuilder<T> builder = new FlatFileItemWriterBuilder<>();
 
         builder.name(definition.getStepName() + "Writer")
-            .resource(definition.getResource())
+            .resource((org.springframework.core.io.WritableResource) definition.getResource())
             .lineAggregator(new DelimitedLineAggregator<T>() {{
                 setDelimiter(definition.getDelimiter());
                 setFieldExtractor(new AnnotationFieldExtractor<>(definition.getEntityClass()));

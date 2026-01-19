@@ -7,7 +7,7 @@ import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.batch.item.support.SynchronizedItemStreamReader;
@@ -18,6 +18,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.IntStream;
 
 /**
@@ -56,7 +57,7 @@ public class MultiThreadDemo {
 
     @Bean
     @StepScope
-    public ItemReader<Integer> multiThreadReader() {
+    public SynchronizedItemStreamReader<Integer> multiThreadReader() {
         List<Integer> items = IntStream.rangeClosed(1, 1000)
             .boxed()
             .collect(Collectors.toList());
@@ -64,7 +65,7 @@ public class MultiThreadDemo {
         ListItemReader<Integer> listReader = new ListItemReader<>(items);
 
         SynchronizedItemStreamReader<Integer> synchronizedReader = new SynchronizedItemStreamReader<>();
-        synchronizedReader.setDelegate(listReader);
+        synchronizedReader.setDelegate((org.springframework.batch.item.ItemStreamReader<Integer>) listReader);
 
         return synchronizedReader;
     }
