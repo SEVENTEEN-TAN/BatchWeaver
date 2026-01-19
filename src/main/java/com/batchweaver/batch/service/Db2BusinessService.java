@@ -1,6 +1,6 @@
 package com.batchweaver.batch.service;
 
-import com.batchweaver.domain.entity.DemoUser;
+import com.batchweaver.batch.entity.DemoUser;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Db2 业务服务
  * <p>
- * 🔴 关键：使用 @Transactional(transactionManager = "tm2")
+ * 关键：使用 @Transactional(transactionManager = "tm2")
  * 确保业务事务由 tm2 管理，与元数据事务（tm1）隔离
  */
 @Service
@@ -30,7 +30,7 @@ public class Db2BusinessService {
     /**
      * 批量插入用户数据到 db2
      * <p>
-     * 🔴 关键：显式指定 transactionManager = "tm2"
+     * 关键：显式指定 transactionManager = "tm2"
      */
     @Transactional(transactionManager = "tm2", propagation = Propagation.REQUIRED)
     public void batchInsertUsers(List<DemoUser> users) {

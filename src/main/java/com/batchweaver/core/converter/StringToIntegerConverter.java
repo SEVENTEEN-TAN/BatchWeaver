@@ -1,4 +1,4 @@
-package com.batchweaver.domain.converter;
+package com.batchweaver.core.converter;
 
 /**
  * String → Integer 转换器

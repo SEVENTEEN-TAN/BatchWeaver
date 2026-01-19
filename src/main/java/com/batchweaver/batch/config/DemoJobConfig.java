@@ -3,7 +3,7 @@ package com.batchweaver.batch.config;
 import com.batchweaver.batch.service.Db2BusinessService;
 import com.batchweaver.core.processor.DataCleansingProcessor;
 import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
-import com.batchweaver.domain.entity.DemoUser;
+import com.batchweaver.batch.entity.DemoUser;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -23,7 +23,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 /**
  * 示例 Job 配置 - 文件导入到 db2
  * <p>
- * 🔴 核心配置：展示事务隔离机制
+ * 核心配置：展示事务隔离机制
  * - Step 使用 tm2（业务事务管理器）
  * - JobRepository 使用 tm1（元数据事务管理器）
  * - 失败时：业务事务回滚，元数据事务提交 FAILED 状态
@@ -67,7 +67,7 @@ public class DemoJobConfig {
     }
 
     /**
-     * 🔴 关键配置：Step 使用 tm2（业务事务管理器）
+     * 关键配置：Step 使用 tm2（业务事务管理器）
      *
      * @param jobRepository JobRepository（使用 tm1 管理元数据）
      * @param tm2           业务事务管理器（管理 db2 的业务数据）

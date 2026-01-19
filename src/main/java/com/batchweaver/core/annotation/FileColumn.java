@@ -1,7 +1,7 @@
-package com.batchweaver.domain.annotation;
+package com.batchweaver.core.annotation;
 
-import com.batchweaver.domain.converter.NoOpConverter;
-import com.batchweaver.domain.converter.TypeConverter;
+import com.batchweaver.core.converter.NoOpConverter;
+import com.batchweaver.core.converter.TypeConverter;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

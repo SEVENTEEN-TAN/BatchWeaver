@@ -1,8 +1,8 @@
 package com.batchweaver.core.reader;
 
-import com.batchweaver.domain.annotation.FileColumn;
-import com.batchweaver.domain.converter.NoOpConverter;
-import com.batchweaver.domain.converter.TypeConverter;
+import com.batchweaver.core.annotation.FileColumn;
+import com.batchweaver.core.converter.NoOpConverter;
+import com.batchweaver.core.converter.TypeConverter;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.FieldSet;
 import org.springframework.validation.BindException;

@@ -2,7 +2,7 @@
 
 基于 Spring Batch 5.x 的企业级批处理系统，支持多数据源、事务隔离、基于注解的文件处理框架。
 
-## 🔴 核心特性
+## 核心特性
 
 ### 1. 元数据与业务事务隔离
 
@@ -125,7 +125,7 @@ mvn spring-boot:run
 mvn test
 ```
 
-## 🔴 事务隔离关键配置
+## 事务隔离关键配置
 
 ### BatchInfrastructureConfig.java
 
@@ -136,7 +136,7 @@ public JobRepository jobRepository(
     @Qualifier("tm1") PlatformTransactionManager tm1) {
 
     factory.setDataSource(dataSource1);       // ✅ db1
-    factory.setTransactionManager(tm1);       // 🔴 绑定 tm1（元数据事务）
+    factory.setTransactionManager(tm1);       // 绑定 tm1（元数据事务）
     ...
 }
 ```
@@ -151,7 +151,7 @@ public Step importFileStep(
     ...) {
 
     return new StepBuilder("importFileStep", jobRepository)
-        .transactionManager(tm2)  // 🔴 显式指定业务事务管理器 tm2
+        .transactionManager(tm2)  // 显式指定业务事务管理器 tm2
         .<DemoUser, DemoUser>chunk(100, tm2)
         .reader(reader)
         .processor(processor)
@@ -224,7 +224,7 @@ public class DemoUser {
 
 | 类名 | 职责 |
 |------|------|
-| **BatchInfrastructureConfig** | 🔴 核心配置：JobRepository 绑定 tm1，确保元数据事务独立 |
+| **BatchInfrastructureConfig** | 核心配置：JobRepository 绑定 tm1，确保元数据事务独立 |
 | **DataSource1-4Config** | 4 个数据源配置，每个数据源独立的连接池和事务管理器 |
 | **AnnotationDrivenFieldSetMapper** | 解析 @FileColumn 注解，自动完成字段映射和数据清洗 |
 | **HeaderValidator/FooterValidator** | 首尾行格式校验和记录总数验证 |

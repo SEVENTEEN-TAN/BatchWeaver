@@ -17,7 +17,7 @@ import javax.sql.DataSource;
 /**
  * Batch 基础设施配置 - 元数据事务独立配置
  * <p>
- * 🔴 核心设计：JobRepository 绑定 tm1（db1 事务管理器）
+ * 核心设计：JobRepository 绑定 tm1（db1 事务管理器）
  * 确保元数据事务独立于业务事务，失败时元数据也能提交
  * <p>
  * 事务隔离保证：
@@ -33,7 +33,7 @@ import javax.sql.DataSource;
 public class BatchInfrastructureConfig {
 
     /**
-     * 🔴 关键配置：JobRepository 绑定 tm1（db1 事务管理器）
+     * 关键配置：JobRepository 绑定 tm1（db1 事务管理器）
      * 确保元数据事务独立于业务事务，失败时元数据也能提交
      *
      * @param dataSource1 db1 数据源（元数据表所在数据库）
@@ -45,7 +45,7 @@ public class BatchInfrastructureConfig {
                                        @Qualifier("tm1") PlatformTransactionManager tm1) throws Exception {
         JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
         factory.setDataSource(dataSource1);       // ✅ 使用 db1 数据源
-        factory.setTransactionManager(tm1);       // 🔴 绑定 tm1，确保元数据事务独立
+        factory.setTransactionManager(tm1);       // 绑定 tm1，确保元数据事务独立
         factory.setIsolationLevelForCreate("ISOLATION_READ_COMMITTED");
         factory.setTablePrefix("BATCH_");         // Spring Batch 元数据表前缀
         factory.setDatabaseType("SQLSERVER");     // SQL Server 数据库类型

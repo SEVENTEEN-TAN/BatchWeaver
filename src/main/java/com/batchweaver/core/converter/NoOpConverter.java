@@ -1,4 +1,4 @@
-package com.batchweaver.domain.converter;
+package com.batchweaver.core.converter;
 
 /**
  * 空操作转换器（默认转换器）

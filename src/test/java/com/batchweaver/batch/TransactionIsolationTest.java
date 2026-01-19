@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * 🔴 事务隔离验证测试（核心测试）
+ * 事务隔离验证测试（核心测试）
  *
  * 测试目标：验证元数据事务（tm1）独立性，确保业务失败时元数据仍能提交
  *
@@ -78,7 +78,7 @@ public class TransactionIsolationTest {
     /**
      * 测试 2：异常流程 - 业务失败，元数据仍提交
      *
-     * 🔴 核心测试：验证事务隔离机制
+     * 核心测试：验证事务隔离机制
      * - 业务事务（tm2）回滚 → 业务表为空
      * - 元数据事务（tm1）提交 → 元数据表记录 FAILED 状态
      */
