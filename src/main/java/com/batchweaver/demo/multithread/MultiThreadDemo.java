@@ -2,6 +2,7 @@ package com.batchweaver.demo.multithread;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -54,6 +55,7 @@ public class MultiThreadDemo {
     }
 
     @Bean
+    @StepScope
     public ItemReader<Integer> multiThreadReader() {
         List<Integer> items = IntStream.rangeClosed(1, 1000)
             .boxed()

@@ -30,18 +30,29 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
 
     @Override
     public void beforeJob(JobExecution jobExecution) {
+        Long jobId = jobExecution.getId();
+        if (jobId == null) {
+            log.warn("JobExecution ID is null, skipping metrics tracking");
+            return;
+        }
         Timer.Sample sample = Timer.start(meterRegistry);
-        jobSamples.put(jobExecution.getId(), sample);
+        jobSamples.put(jobId, sample);
         log.info("Job started: {}", jobExecution.getJobInstance().getJobName());
     }
 
     @Override
     public void afterJob(JobExecution jobExecution) {
+        Long jobId = jobExecution.getId();
+        if (jobId == null) {
+            log.warn("JobExecution ID is null, skipping metrics recording");
+            return;
+        }
+
         String jobName = jobExecution.getJobInstance().getJobName();
         String status = jobExecution.getStatus().name();
 
         // Job执行时长
-        Timer.Sample sample = jobSamples.remove(jobExecution.getId());
+        Timer.Sample sample = jobSamples.remove(jobId);
         if (sample != null) {
             sample.stop(Timer.builder("batch.job.duration")
                 .tag("job_name", jobName)
@@ -73,19 +84,30 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
+        Long stepId = stepExecution.getId();
+        if (stepId == null) {
+            log.warn("StepExecution ID is null, skipping metrics tracking");
+            return;
+        }
         Timer.Sample sample = Timer.start(meterRegistry);
-        stepSamples.put(stepExecution.getId(), sample);
+        stepSamples.put(stepId, sample);
         log.info("Step started: {}", stepExecution.getStepName());
     }
 
     @Override
-    public void afterStep(StepExecution stepExecution) {
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        Long stepId = stepExecution.getId();
+        if (stepId == null) {
+            log.warn("StepExecution ID is null, skipping metrics recording");
+            return null;
+        }
+
         String jobName = stepExecution.getJobExecution().getJobInstance().getJobName();
         String stepName = stepExecution.getStepName();
         String status = stepExecution.getStatus().name();
 
         // Step执行时长
-        Timer.Sample sample = stepSamples.remove(stepExecution.getId());
+        Timer.Sample sample = stepSamples.remove(stepId);
         if (sample != null) {
             sample.stop(Timer.builder("batch.step.duration")
                 .tag("job_name", jobName)
@@ -103,7 +125,8 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
             "job_name", jobName, "step_name", stepName).increment(
             stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount());
 
-        // 吞吐量（records/s）
+        // 计算吞吐量（records/s）
+        String throughputStr = "N/A";
         LocalDateTime startTime = stepExecution.getStartTime();
         LocalDateTime endTime = stepExecution.getEndTime();
         if (startTime != null && endTime != null) {
@@ -111,12 +134,15 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
             long millis = duration.toMillis();
             if (millis > 0) {
                 double throughput = stepExecution.getWriteCount() / (millis / 1000.0);
-                log.info("Step completed: {} - status={}, read={}, write={}, skip={}, throughput={} records/s",
-                    stepName, status, stepExecution.getReadCount(), stepExecution.getWriteCount(),
-                    stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount(),
-                    String.format("%.2f", throughput));
+                throughputStr = String.format("%.2f", throughput);
             }
         }
+
+        // 始终记录 Step 完成日志
+        log.info("Step completed: {} - status={}, read={}, write={}, skip={}, throughput={} records/s",
+            stepName, status, stepExecution.getReadCount(), stepExecution.getWriteCount(),
+            stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount(),
+            throughputStr);
 
         return null;
     }

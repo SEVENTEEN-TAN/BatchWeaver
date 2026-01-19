@@ -62,6 +62,7 @@ public class PartitionDemo {
             for (int i = 0; i < gridSize; i++) {
                 ExecutionContext context = new ExecutionContext();
                 context.putInt("partitionNumber", i);
+                // 分区范围：[startLine, endLine) 半开区间（不包含 endLine）
                 context.putInt("startLine", i * linesPerPartition);
                 // 最后一个分区处理所有剩余行
                 int endLine = (i == gridSize - 1) ? totalLines : (i + 1) * linesPerPartition;
