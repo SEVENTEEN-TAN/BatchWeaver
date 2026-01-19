@@ -140,21 +140,6 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name='IX_STEP_EXECUTION_CONTEXT_S
     CREATE NONCLUSTERED INDEX IX_STEP_EXECUTION_CONTEXT_STEP_EXECUTION_ID ON BATCH_STEP_EXECUTION_CONTEXT(STEP_EXECUTION_ID);
 
 -- ===============================================================================================
--- Demo Business Tables
--- ===============================================================================================
-
-IF OBJECT_ID('DEMO_USER', 'U') IS NOT NULL DROP TABLE DEMO_USER;
-
-CREATE TABLE DEMO_USER (
-                           ID BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                           USERNAME NVARCHAR(100) NOT NULL,
-                           EMAIL NVARCHAR(100),
-                           STATUS NVARCHAR(20) DEFAULT 'ACTIVE',
-                           CREATE_TIME DATETIME DEFAULT GETDATE(),
-                           UPDATE_TIME DATETIME DEFAULT GETDATE()
-);
-
--- ===============================================================================================
 -- 表和字段描述 (Table and Column Descriptions)
 -- ===============================================================================================
 
@@ -219,12 +204,3 @@ EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'Job执行上�
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'关联的Job执行ID', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'BATCH_JOB_EXECUTION_CONTEXT', @level2type = N'COLUMN', @level2name = N'JOB_EXECUTION_ID';
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'短上下文：存储简短的上下文信息', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'BATCH_JOB_EXECUTION_CONTEXT', @level2type = N'COLUMN', @level2name = N'SHORT_CONTEXT';
 EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'序列化上下文：存储完整的序列化上下文数据', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'BATCH_JOB_EXECUTION_CONTEXT', @level2type = N'COLUMN', @level2name = N'SERIALIZED_CONTEXT';
-
--- DEMO_USER 表描述
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'演示用户表：用于批处理任务的示例业务表', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'DEMO_USER';
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'用户ID（主键，自增）', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'DEMO_USER', @level2type = N'COLUMN', @level2name = N'ID';
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'用户登录名', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'DEMO_USER', @level2type = N'COLUMN', @level2name = N'USERNAME';
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'用户邮箱地址', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'DEMO_USER', @level2type = N'COLUMN', @level2name = N'EMAIL';
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'用户状态：PENDING/ACTIVE/INACTIVE等', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'DEMO_USER', @level2type = N'COLUMN', @level2name = N'STATUS';
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'记录创建时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'DEMO_USER', @level2type = N'COLUMN', @level2name = N'CREATE_TIME';
-EXEC sp_addextendedproperty @name = N'MS_Description', @value = N'记录更新时间', @level0type = N'SCHEMA', @level0name = N'dbo', @level1type = N'TABLE', @level1name = N'DEMO_USER', @level2type = N'COLUMN', @level2name = N'UPDATE_TIME';
