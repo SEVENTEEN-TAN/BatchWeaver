@@ -1,4 +1,4 @@
-package com.batchweaver.batch.config.datasource;
+package com.batchweaver.core.config.datasource;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,37 +14,37 @@ import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 
 /**
- * DataSource4 配置 - db4（纯业务数据库）
- *
- * 业务事务管理器：tm4（用于 Step 的业务数据操作）
+ * DataSource2 配置 - db2（纯业务数据库）
+ * <p>
+ * 业务事务管理器：tm2（用于 Step 的业务数据操作）
  */
 @Configuration
-public class DataSource4Config {
+public class DataSource2Config {
 
-    @Bean(name = "dataSource4")
-    @ConfigurationProperties(prefix = "spring.datasource.db4")
-    public DataSource dataSource4() {
+    @Bean(name = "dataSource2")
+    @ConfigurationProperties(prefix = "spring.datasource.db2")
+    public DataSource dataSource2() {
         return DataSourceBuilder.create()
-            .type(HikariDataSource.class)
-            .build();
+                .type(HikariDataSource.class)
+                .build();
     }
 
-    @Bean(name = "jdbcTemplate4")
-    public JdbcTemplate jdbcTemplate4(@Qualifier("dataSource4") DataSource dataSource) {
+    @Bean(name = "jdbcTemplate2")
+    public JdbcTemplate jdbcTemplate2(@Qualifier("dataSource2") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
     }
 
-    @Bean(name = "namedJdbcTemplate4")
-    public NamedParameterJdbcTemplate namedJdbcTemplate4(@Qualifier("dataSource4") DataSource dataSource) {
+    @Bean(name = "namedJdbcTemplate2")
+    public NamedParameterJdbcTemplate namedJdbcTemplate2(@Qualifier("dataSource2") DataSource dataSource) {
         return new NamedParameterJdbcTemplate(dataSource);
     }
 
     /**
-     * tm4 - 业务事务管理器
-     * 用于管理 db4 的业务数据操作
+     * tm2 - 业务事务管理器
+     * 用于管理 db2 的业务数据操作
      */
-    @Bean(name = "tm4")
-    public PlatformTransactionManager tm4(@Qualifier("dataSource4") DataSource dataSource) {
+    @Bean(name = "tm2")
+    public PlatformTransactionManager tm2(@Qualifier("dataSource2") DataSource dataSource) {
         return new DataSourceTransactionManager(dataSource);
     }
 }

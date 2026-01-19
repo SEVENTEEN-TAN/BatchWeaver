@@ -1,4 +1,4 @@
-package com.batchweaver.batch.config.infrastructure;
+package com.batchweaver.core.config;
 
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.explore.JobExplorer;
@@ -16,10 +16,10 @@ import javax.sql.DataSource;
 
 /**
  * Batch 基础设施配置 - 元数据事务独立配置
- *
+ * <p>
  * 🔴 核心设计：JobRepository 绑定 tm1（db1 事务管理器）
  * 确保元数据事务独立于业务事务，失败时元数据也能提交
- *
+ * <p>
  * 事务隔离保证：
  * - JobRepository 使用 tm1 管理元数据表（BATCH_JOB_EXECUTION、BATCH_STEP_EXECUTION 等）
  * - Step 使用 tm2/tm3/tm4 管理业务数据
@@ -27,8 +27,8 @@ import javax.sql.DataSource;
  */
 @Configuration
 @EnableBatchProcessing(
-    dataSourceRef = "dataSource1",
-    transactionManagerRef = "tm1"
+        dataSourceRef = "dataSource1",
+        transactionManagerRef = "tm1"
 )
 public class BatchInfrastructureConfig {
 
@@ -37,7 +37,7 @@ public class BatchInfrastructureConfig {
      * 确保元数据事务独立于业务事务，失败时元数据也能提交
      *
      * @param dataSource1 db1 数据源（元数据表所在数据库）
-     * @param tm1 db1 事务管理器（元数据事务管理器）
+     * @param tm1         db1 事务管理器（元数据事务管理器）
      * @return JobRepository
      */
     @Bean
@@ -72,7 +72,7 @@ public class BatchInfrastructureConfig {
         JobExplorerFactoryBean factory = new JobExplorerFactoryBean();
         factory.setDataSource(dataSource1);
         factory.setTablePrefix("BATCH_");
-        factory.setDatabaseType("SQLSERVER");
+        // Spring Batch 5.x 会自动检测数据库类型，无需手动设置
         factory.afterPropertiesSet();
         return factory.getObject();
     }

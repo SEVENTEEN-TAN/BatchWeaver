@@ -1,6 +1,7 @@
 package com.batchweaver.core.reader;
 
 import com.batchweaver.domain.annotation.FileColumn;
+import com.batchweaver.domain.converter.NoOpConverter;
 import com.batchweaver.domain.converter.TypeConverter;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.FieldSet;
@@ -13,7 +14,7 @@ import java.util.Date;
 
 /**
  * 基于注解的字段映射器
- *
+ * <p>
  * 解析实体类上的 @FileColumn 注解，自动完成字段映射、数据清洗和类型转换
  *
  * @param <T> 目标实体类型
@@ -91,7 +92,7 @@ public class AnnotationDrivenFieldSetMapper<T> implements FieldSetMapper<T> {
         }
 
         // 使用自定义转换器
-        if (converterClass != TypeConverter.class) {
+        if (converterClass != NoOpConverter.class) {
             TypeConverter<?> converter = converterClass.getDeclaredConstructor().newInstance();
             return converter.convert(value);
         }

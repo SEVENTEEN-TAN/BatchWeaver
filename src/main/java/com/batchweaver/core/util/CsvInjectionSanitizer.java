@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 /**
  * CSV 注入防护工具
- *
+ * <p>
  * 检测并转义危险字符，防止 CSV 注入攻击
  * 危险字符：=、+、-、@ 开头的内容
  */
@@ -41,7 +41,7 @@ public class CsvInjectionSanitizer {
      */
     public List<String> sanitizeAll(List<String> values) {
         return values.stream()
-            .map(this::sanitize)
-            .collect(Collectors.toList());
+                .map(this::sanitize)
+                .collect(Collectors.toList());
     }
 }

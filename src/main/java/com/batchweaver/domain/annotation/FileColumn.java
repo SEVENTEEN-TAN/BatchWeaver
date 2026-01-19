@@ -1,5 +1,6 @@
 package com.batchweaver.domain.annotation;
 
+import com.batchweaver.domain.converter.NoOpConverter;
 import com.batchweaver.domain.converter.TypeConverter;
 
 import java.lang.annotation.ElementType;
@@ -9,12 +10,12 @@ import java.lang.annotation.Target;
 
 /**
  * 文件列映射注解
- *
+ * <p>
  * 用于标记实体类字段与文件列的映射关系，支持：
  * - 列索引指定
  * - 数据清洗（trim、大小写转换、默认值）
  * - 自定义类型转换器
- *
+ * <p>
  * 示例：
  * <pre>
  * {@code @FileColumn(index = 0, name = "userId")}
@@ -64,5 +65,5 @@ public @interface FileColumn {
     /**
      * 自定义类型转换器
      */
-    Class<? extends TypeConverter<?>> converter() default TypeConverter.class;
+    Class<? extends TypeConverter<?>> converter() default NoOpConverter.class;
 }

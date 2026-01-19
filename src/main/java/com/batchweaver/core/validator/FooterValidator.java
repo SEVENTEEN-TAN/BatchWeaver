@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 尾行校验器
- *
+ * <p>
  * 尾行格式：T|1000
  * - T：尾行标识符
  * - 1000：记录总数
@@ -17,7 +17,7 @@ public class FooterValidator {
     /**
      * 校验尾行格式并验证记录总数
      *
-     * @param footerLine 尾行内容
+     * @param footerLine        尾行内容
      * @param actualRecordCount 实际读取的记录数
      * @throws ValidationException 校验失败时抛出异常
      */
@@ -40,7 +40,7 @@ public class FooterValidator {
 
         if (declaredCount != actualRecordCount) {
             throw new ValidationException(
-                String.format("Record count mismatch: declared=%d, actual=%d", declaredCount, actualRecordCount)
+                    String.format("Record count mismatch: declared=%d, actual=%d", declaredCount, actualRecordCount)
             );
         }
     }

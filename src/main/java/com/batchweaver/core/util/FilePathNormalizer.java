@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 
 /**
  * 文件路径规范化和安全校验工具
- *
+ * <p>
  * 防止路径遍历攻击和非法文件访问
  */
 @Component
@@ -52,7 +52,7 @@ public class FilePathNormalizer {
     /**
      * 校验文件扩展名
      *
-     * @param filePath 文件路径
+     * @param filePath          文件路径
      * @param allowedExtensions 允许的扩展名集合（如 ["txt", "csv", "dat"]）
      * @throws SecurityException 扩展名不在白名单时抛出异常
      */

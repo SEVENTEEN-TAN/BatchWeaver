@@ -8,7 +8,7 @@ import java.time.format.DateTimeParseException;
 
 /**
  * 首行校验器
- *
+ * <p>
  * 首行格式：H|20261231|FILE_IDENTIFIER
  * - H：首行标识符
  * - 20261231：日期（yyyyMMdd 格式）

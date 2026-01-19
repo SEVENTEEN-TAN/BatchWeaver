@@ -1,4 +1,4 @@
-package com.batchweaver.batch.config.datasource;
+package com.batchweaver.core.config.datasource;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,7 +15,7 @@ import javax.sql.DataSource;
 
 /**
  * DataSource3 配置 - db3（纯业务数据库）
- *
+ * <p>
  * 业务事务管理器：tm3（用于 Step 的业务数据操作）
  */
 @Configuration
@@ -25,8 +25,8 @@ public class DataSource3Config {
     @ConfigurationProperties(prefix = "spring.datasource.db3")
     public DataSource dataSource3() {
         return DataSourceBuilder.create()
-            .type(HikariDataSource.class)
-            .build();
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Bean(name = "jdbcTemplate3")
