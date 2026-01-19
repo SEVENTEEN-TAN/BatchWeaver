@@ -63,8 +63,8 @@ public class TemplateBasedImportJobExample {
         var writer = JdbcBatchItemWriterFactory.create(dataSource2, sql, DemoUser.class);
 
         // 构建Job定义
-        FileImportJobTemplate.FileImportJobDefinition definition =
-            FileImportJobTemplate.FileImportJobDefinition.builder()
+        FileImportJobTemplate.FileImportJobDefinition<DemoUser, DemoUser> definition =
+            FileImportJobTemplate.FileImportJobDefinition.<DemoUser, DemoUser>builder()
                 .jobName("templateImportJob")
                 .stepName("templateImportStep")
                 .jobRepository(jobRepository)
@@ -123,8 +123,8 @@ public class TemplateBasedImportJobExample {
                      "VALUES (:id, :name, :email, :birthDate)";
         var writer = JdbcBatchItemWriterFactory.create(dataSource2, sql, DemoUser.class);
 
-        FileImportJobTemplate.FileImportJobDefinition definition =
-            FileImportJobTemplate.FileImportJobDefinition.builder()
+        FileImportJobTemplate.FileImportJobDefinition<DemoUser, DemoUser> definition =
+            FileImportJobTemplate.FileImportJobDefinition.<DemoUser, DemoUser>builder()
                 .jobName("simpleTemplateImportJob")
                 .stepName("simpleTemplateImportStep")
                 .jobRepository(jobRepository)

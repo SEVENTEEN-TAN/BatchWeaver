@@ -8,7 +8,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 执行上下文日志记录器
@@ -22,11 +21,8 @@ public class ExecutionContextLogger implements JobExecutionListener, StepExecuti
     private static final String LINE = "=".repeat(80);
     private static final String SEPARATOR = "-".repeat(78);
 
-    private final List<StepSummary> stepSummaries = new CopyOnWriteArrayList<>();
-
     @Override
     public void beforeJob(JobExecution jobExecution) {
-        stepSummaries.clear();
 
         StringBuilder contract = new StringBuilder("\n");
         contract.append(LINE).append("\n");

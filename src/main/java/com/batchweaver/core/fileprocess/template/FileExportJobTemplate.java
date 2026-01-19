@@ -18,6 +18,7 @@ import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.WritableResource;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import java.io.IOException;
@@ -70,7 +71,7 @@ public class FileExportJobTemplate {
         FlatFileItemWriterBuilder<T> builder = new FlatFileItemWriterBuilder<>();
 
         builder.name(definition.getStepName() + "Writer")
-            .resource((org.springframework.core.io.WritableResource) definition.getResource())
+            .resource(definition.getResource())
             .lineAggregator(new DelimitedLineAggregator<T>() {{
                 setDelimiter(definition.getDelimiter());
                 setFieldExtractor(new AnnotationFieldExtractor<>(definition.getEntityClass()));
@@ -91,7 +92,11 @@ public class FileExportJobTemplate {
             builder.footerCallback(new org.springframework.batch.item.file.FlatFileFooterCallback() {
                 @Override
                 public void writeFooter(Writer writer) throws IOException {
-                    StepExecution stepExecution = StepSynchronizationManager.getContext().getStepExecution();
+                    var context = StepSynchronizationManager.getContext();
+                    if (context == null) {
+                        throw new IllegalStateException("No step context available for footer generation");
+                    }
+                    StepExecution stepExecution = context.getStepExecution();
                     long writeCount = stepExecution.getWriteCount();
                     String footer = definition.getFooterGenerator().generate(writeCount);
                     if (footer != null && !footer.isEmpty()) {
@@ -116,7 +121,7 @@ public class FileExportJobTemplate {
         private PlatformTransactionManager transactionManager;
 
         private ItemReader<T> reader;
-        private Resource resource;
+        private WritableResource resource;
         private Class<T> entityClass;
 
         @Builder.Default

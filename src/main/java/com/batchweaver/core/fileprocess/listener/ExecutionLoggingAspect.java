@@ -20,10 +20,10 @@ public class ExecutionLoggingAspect {
     @Around("execution(* com.batchweaver..service..*(..))")
     public Object aroundServiceMethods(ProceedingJoinPoint pjp) throws Throwable {
         String executionId = resolveExecutionId();
-        log.info("Start {} executionId={}", pjp.getSignature().toShortString(), executionId);
+        log.debug("Start {} executionId={}", pjp.getSignature().toShortString(), executionId);
         try {
             Object result = pjp.proceed();
-            log.info("End {} executionId={}", pjp.getSignature().toShortString(), executionId);
+            log.debug("End {} executionId={}", pjp.getSignature().toShortString(), executionId);
             return result;
         } catch (Throwable t) {
             log.error("Error {} executionId={}", pjp.getSignature().toShortString(), executionId, t);

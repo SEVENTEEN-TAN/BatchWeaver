@@ -29,7 +29,7 @@ public class FileImportJobTemplate {
      * @param definition Job定义
      * @return Job实例
      */
-    public Job buildJob(FileImportJobDefinition definition) {
+    public <I, O> Job buildJob(FileImportJobDefinition<I, O> definition) {
         Step step = buildStep(definition);
 
         return new JobBuilder(definition.getJobName(), definition.getJobRepository())
@@ -43,16 +43,15 @@ public class FileImportJobTemplate {
      * @param definition Job定义
      * @return Step实例
      */
-    @SuppressWarnings("unchecked")
-    public Step buildStep(FileImportJobDefinition definition) {
+    public <I, O> Step buildStep(FileImportJobDefinition<I, O> definition) {
         var chunkBuilder = new StepBuilder(definition.getStepName(), definition.getJobRepository())
-            .<Object, Object>chunk(definition.getChunkSize(), definition.getTransactionManager())
+            .<I, O>chunk(definition.getChunkSize(), definition.getTransactionManager())
             .reader(definition.getReader())
-            .writer((org.springframework.batch.item.ItemWriter<? super Object>) definition.getWriter());
+            .writer(definition.getWriter());
 
         // 可选：Processor
         if (definition.getProcessor() != null) {
-            chunkBuilder.processor((org.springframework.batch.item.ItemProcessor<? super Object, ? extends Object>) definition.getProcessor());
+            chunkBuilder.processor(definition.getProcessor());
         }
 
         // 可选：头尾校验
@@ -91,16 +90,16 @@ public class FileImportJobTemplate {
      */
     @Data
     @Builder
-    public static class FileImportJobDefinition {
+    public static class FileImportJobDefinition<I, O> {
         private String jobName;
         private String stepName;
         private JobRepository jobRepository;
         private PlatformTransactionManager transactionManager;
 
         // Reader/Processor/Writer
-        private ItemReader<?> reader;
-        private ItemProcessor<?, ?> processor;
-        private ItemWriter<?> writer;
+        private ItemReader<? extends I> reader;
+        private ItemProcessor<? super I, ? extends O> processor;
+        private ItemWriter<? super O> writer;
 
         // 头尾处理
         private Resource resource;

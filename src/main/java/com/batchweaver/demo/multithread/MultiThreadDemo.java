@@ -19,7 +19,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.IntStream;
 
 /**
  * 多线程并行Demo
@@ -59,7 +58,6 @@ public class MultiThreadDemo {
 
     @Bean
     @StepScope
-    @SuppressWarnings("unchecked")
     public SynchronizedItemStreamReader<Integer> multiThreadReader() {
         List<Integer> items = IntStream.rangeClosed(1, 1000)
             .boxed()
@@ -67,8 +65,28 @@ public class MultiThreadDemo {
 
         ListItemReader<Integer> listReader = new ListItemReader<>(items);
 
+        // Wrap ListItemReader with ItemStreamReader adapter
+        ItemStreamReader<Integer> streamReader = new ItemStreamReader<Integer>() {
+            @Override
+            public Integer read() throws Exception {
+                return listReader.read();
+            }
+
+            @Override
+            public void open(org.springframework.batch.item.ExecutionContext executionContext) {
+            }
+
+            @Override
+            public void update(org.springframework.batch.item.ExecutionContext executionContext) {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+
         SynchronizedItemStreamReader<Integer> synchronizedReader = new SynchronizedItemStreamReader<>();
-        synchronizedReader.setDelegate((org.springframework.batch.item.ItemStreamReader<Integer>) listReader);
+        synchronizedReader.setDelegate(streamReader);
 
         return synchronizedReader;
     }
