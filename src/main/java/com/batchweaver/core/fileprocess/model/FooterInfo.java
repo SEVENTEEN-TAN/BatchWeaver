@@ -1,4 +1,4 @@
-package com.batchweaver.fileprocess.model;
+package com.batchweaver.core.fileprocess.model;
 
 import lombok.Data;
 

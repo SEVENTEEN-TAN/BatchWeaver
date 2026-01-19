@@ -1,4 +1,4 @@
-package com.batchweaver.fileprocess.writer;
+package com.batchweaver.core.fileprocess.writer;
 
 import com.batchweaver.core.annotation.FileColumn;
 import org.springframework.batch.item.file.transform.FieldExtractor;

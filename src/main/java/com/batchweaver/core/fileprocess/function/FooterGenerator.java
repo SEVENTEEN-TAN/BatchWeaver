@@ -1,4 +1,4 @@
-package com.batchweaver.fileprocess.function;
+package com.batchweaver.core.fileprocess.function;
 
 /**
  * 尾生成器函数接口

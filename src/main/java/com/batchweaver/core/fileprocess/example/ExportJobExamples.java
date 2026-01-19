@@ -1,8 +1,8 @@
-package com.batchweaver.fileprocess.example;
+package com.batchweaver.core.fileprocess.example;
 
 import com.batchweaver.batch.entity.DemoUser;
-import com.batchweaver.fileprocess.core.FileExportJobTemplate;
-import com.batchweaver.fileprocess.reader.AnnotationRowMapper;
+import com.batchweaver.core.fileprocess.core.FileExportJobTemplate;
+import com.batchweaver.core.fileprocess.reader.AnnotationRowMapper;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.item.database.JdbcPagingItemReader;

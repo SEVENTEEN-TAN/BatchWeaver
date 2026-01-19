@@ -1,13 +1,13 @@
-package com.batchweaver.fileprocess.example;
+package com.batchweaver.core.fileprocess.example;
 
 import com.batchweaver.batch.entity.DemoUser;
 import com.batchweaver.batch.service.Db2BusinessService;
 import com.batchweaver.core.processor.DataCleansingProcessor;
 import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
-import com.batchweaver.fileprocess.function.*;
-import com.batchweaver.fileprocess.listener.HeaderFooterListener;
-import com.batchweaver.fileprocess.model.FooterInfo;
-import com.batchweaver.fileprocess.model.HeaderInfo;
+import com.batchweaver.core.fileprocess.function.*;
+import com.batchweaver.core.fileprocess.listener.HeaderFooterListener;
+import com.batchweaver.core.fileprocess.model.FooterInfo;
+import com.batchweaver.core.fileprocess.model.HeaderInfo;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;

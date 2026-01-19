@@ -1,6 +1,6 @@
-package com.batchweaver.fileprocess.function;
+package com.batchweaver.core.fileprocess.function;
 
-import com.batchweaver.fileprocess.model.HeaderInfo;
+import com.batchweaver.core.fileprocess.model.HeaderInfo;
 
 /**
  * 头解析器函数接口

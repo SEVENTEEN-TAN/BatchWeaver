@@ -1,9 +1,9 @@
-package com.batchweaver.fileprocess.core;
+package com.batchweaver.core.fileprocess.core;
 
-import com.batchweaver.fileprocess.function.FooterGenerator;
-import com.batchweaver.fileprocess.function.HeaderGenerator;
-import com.batchweaver.fileprocess.listener.UniversalErrorListener;
-import com.batchweaver.fileprocess.writer.AnnotationFieldExtractor;
+import com.batchweaver.core.fileprocess.function.FooterGenerator;
+import com.batchweaver.core.fileprocess.function.HeaderGenerator;
+import com.batchweaver.core.fileprocess.listener.UniversalErrorListener;
+import com.batchweaver.core.fileprocess.writer.AnnotationFieldExtractor;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.batch.core.Job;

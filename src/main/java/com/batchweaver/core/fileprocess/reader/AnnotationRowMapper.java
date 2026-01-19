@@ -1,4 +1,4 @@
-package com.batchweaver.fileprocess.reader;
+package com.batchweaver.core.fileprocess.reader;
 
 import com.batchweaver.core.annotation.FileColumn;
 import org.springframework.jdbc.core.RowMapper;

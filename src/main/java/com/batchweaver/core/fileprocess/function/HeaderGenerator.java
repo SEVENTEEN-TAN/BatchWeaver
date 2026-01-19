@@ -1,4 +1,4 @@
-package com.batchweaver.fileprocess.function;
+package com.batchweaver.core.fileprocess.function;
 
 import java.time.LocalDate;
 

@@ -1,6 +1,6 @@
-package com.batchweaver.fileprocess.function;
+package com.batchweaver.core.fileprocess.function;
 
-import com.batchweaver.fileprocess.model.FooterInfo;
+import com.batchweaver.core.fileprocess.model.FooterInfo;
 
 /**
  * 尾校验器函数接口

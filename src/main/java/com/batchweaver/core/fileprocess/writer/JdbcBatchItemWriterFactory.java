@@ -1,4 +1,4 @@
-package com.batchweaver.fileprocess.writer;
+package com.batchweaver.core.fileprocess.writer;
 
 import org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
