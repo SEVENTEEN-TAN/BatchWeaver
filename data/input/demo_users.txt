@@ -1,0 +1,5 @@
+H|20261231|DEMO_FILE
+1|John Doe|john@example.com|19900115
+2|Jane Smith|jane@example.com|19850622
+3|Bob Johnson|bob@example.com|19781203
+T|3

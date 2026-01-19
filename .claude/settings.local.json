@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ace-tool__enhance_prompt",
+      "mcp__ace-tool__search_context",
+      "Bash(dir /s /b \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\NewBatch\")",
+      "Bash(findstr:*)"
+    ]
+  }
+}
