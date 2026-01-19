@@ -9,7 +9,7 @@ spring:
       hikari:
         maximum-pool-size: 15
         minimum-idle: 5
-        connection-timeout: 30000
+        connection-timeout: 10000
         idle-timeout: 600000
         max-lifetime: 1800000
         pool-name: HikariPool-DB1
@@ -23,7 +23,7 @@ spring:
       hikari:
         maximum-pool-size: 10
         minimum-idle: 3
-        connection-timeout: 30000
+        connection-timeout: 10000
         pool-name: HikariPool-DB2
 
     # DB3: 业务数据库 3
@@ -35,7 +35,7 @@ spring:
       hikari:
         maximum-pool-size: 10
         minimum-idle: 3
-        connection-timeout: 30000
+        connection-timeout: 10000
         pool-name: HikariPool-DB3
 
     # DB4: 业务数据库 4
@@ -47,7 +47,7 @@ spring:
       hikari:
         maximum-pool-size: 10
         minimum-idle: 3
-        connection-timeout: 30000
+        connection-timeout: 10000
         pool-name: HikariPool-DB4
 
   # Spring Batch 配置
@@ -62,9 +62,10 @@ spring:
 logging:
   level:
     root: INFO
-    org.springframework.batch: DEBUG
-    org.springframework.jdbc: DEBUG
-    com.batchweaver: DEBUG
+    org.springframework.batch: INFO
+    org.springframework.jdbc.core: WARN
+    com.batchweaver: INFO
+    com.zaxxer.hikari: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
