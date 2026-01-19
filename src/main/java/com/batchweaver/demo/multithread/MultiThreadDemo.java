@@ -45,18 +45,21 @@ public class MultiThreadDemo {
     @Bean
     public Step multiThreadStep(JobRepository jobRepository,
                                  PlatformTransactionManager transactionManager) {
+        SimpleAsyncTaskExecutor taskExecutor = new SimpleAsyncTaskExecutor();
+        taskExecutor.setConcurrencyLimit(10);  // 最多10个线程
+
         return new StepBuilder("multiThreadStep", jobRepository)
             .<Integer, Integer>chunk(50, transactionManager)
             .reader(multiThreadReader())
             .processor(multiThreadProcessor())
             .writer(multiThreadWriter())
-            .taskExecutor(new SimpleAsyncTaskExecutor())  // 多线程执行
-            .throttleLimit(10)  // 最多10个线程
+            .taskExecutor(taskExecutor)
             .build();
     }
 
     @Bean
     @StepScope
+    @SuppressWarnings("unchecked")
     public SynchronizedItemStreamReader<Integer> multiThreadReader() {
         List<Integer> items = IntStream.rangeClosed(1, 1000)
             .boxed()

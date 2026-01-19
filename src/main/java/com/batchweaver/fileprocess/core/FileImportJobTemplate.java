@@ -43,6 +43,7 @@ public class FileImportJobTemplate {
      * @param definition Job定义
      * @return Step实例
      */
+    @SuppressWarnings("unchecked")
     public Step buildStep(FileImportJobDefinition definition) {
         var chunkBuilder = new StepBuilder(definition.getStepName(), definition.getJobRepository())
             .<Object, Object>chunk(definition.getChunkSize(), definition.getTransactionManager())
