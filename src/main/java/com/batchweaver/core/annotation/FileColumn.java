@@ -66,4 +66,9 @@ public @interface FileColumn {
      * 自定义类型转换器
      */
     Class<? extends TypeConverter<?>> converter() default NoOpConverter.class;
+
+    /**
+     * 日期格式（用于导出场景）
+     */
+    String format() default "";
 }
