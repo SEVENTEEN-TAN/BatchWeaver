@@ -1,4 +1,4 @@
-package com.batchweaver.core.fileprocess.core;
+package com.batchweaver.core.fileprocess.template;
 
 import com.batchweaver.core.fileprocess.function.*;
 import com.batchweaver.core.fileprocess.listener.HeaderFooterListener;

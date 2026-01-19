@@ -3,7 +3,7 @@ package com.batchweaver.core.fileprocess.example;
 import com.batchweaver.batch.entity.DemoUser;
 import com.batchweaver.core.processor.DataCleansingProcessor;
 import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
-import com.batchweaver.core.fileprocess.core.FileImportJobTemplate;
+import com.batchweaver.core.fileprocess.template.FileImportJobTemplate;
 import com.batchweaver.core.fileprocess.model.FooterInfo;
 import com.batchweaver.core.fileprocess.model.HeaderInfo;
 import com.batchweaver.core.fileprocess.writer.JdbcBatchItemWriterFactory;
