@@ -9,6 +9,7 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.support.ListItemReader;
+import org.springframework.batch.item.support.SynchronizedItemStreamReader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
@@ -57,7 +58,13 @@ public class MultiThreadDemo {
         List<Integer> items = IntStream.rangeClosed(1, 1000)
             .boxed()
             .collect(Collectors.toList());
-        return new ListItemReader<>(items);
+
+        ListItemReader<Integer> listReader = new ListItemReader<>(items);
+
+        SynchronizedItemStreamReader<Integer> synchronizedReader = new SynchronizedItemStreamReader<>();
+        synchronizedReader.setDelegate(listReader);
+
+        return synchronizedReader;
     }
 
     @Bean

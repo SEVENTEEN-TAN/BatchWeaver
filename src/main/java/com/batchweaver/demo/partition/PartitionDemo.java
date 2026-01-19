@@ -63,7 +63,9 @@ public class PartitionDemo {
                 ExecutionContext context = new ExecutionContext();
                 context.putInt("partitionNumber", i);
                 context.putInt("startLine", i * linesPerPartition);
-                context.putInt("endLine", (i + 1) * linesPerPartition);
+                // 最后一个分区处理所有剩余行
+                int endLine = (i == gridSize - 1) ? totalLines : (i + 1) * linesPerPartition;
+                context.putInt("endLine", endLine);
                 partitions.put("partition" + i, context);
             }
 

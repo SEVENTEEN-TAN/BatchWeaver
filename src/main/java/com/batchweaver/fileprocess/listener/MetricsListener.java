@@ -9,6 +9,8 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 监控指标监听器
@@ -19,8 +21,8 @@ import java.time.Duration;
 public class MetricsListener implements JobExecutionListener, StepExecutionListener {
 
     private final MeterRegistry meterRegistry;
-    private Timer.Sample jobSample;
-    private Timer.Sample stepSample;
+    private final ConcurrentHashMap<Long, Timer.Sample> jobSamples = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, Timer.Sample> stepSamples = new ConcurrentHashMap<>();
 
     public MetricsListener(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
@@ -28,7 +30,8 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
 
     @Override
     public void beforeJob(JobExecution jobExecution) {
-        jobSample = Timer.start(meterRegistry);
+        Timer.Sample sample = Timer.start(meterRegistry);
+        jobSamples.put(jobExecution.getId(), sample);
         log.info("Job started: {}", jobExecution.getJobInstance().getJobName());
     }
 
@@ -38,10 +41,13 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
         String status = jobExecution.getStatus().name();
 
         // Job执行时长
-        jobSample.stop(Timer.builder("batch.job.duration")
-            .tag("job_name", jobName)
-            .tag("status", status)
-            .register(meterRegistry));
+        Timer.Sample sample = jobSamples.remove(jobExecution.getId());
+        if (sample != null) {
+            sample.stop(Timer.builder("batch.job.duration")
+                .tag("job_name", jobName)
+                .tag("status", status)
+                .register(meterRegistry));
+        }
 
         // Job读取/写入/跳过数量
         long readCount = jobExecution.getStepExecutions().stream()
@@ -67,7 +73,8 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
 
     @Override
     public void beforeStep(StepExecution stepExecution) {
-        stepSample = Timer.start(meterRegistry);
+        Timer.Sample sample = Timer.start(meterRegistry);
+        stepSamples.put(stepExecution.getId(), sample);
         log.info("Step started: {}", stepExecution.getStepName());
     }
 
@@ -78,11 +85,14 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
         String status = stepExecution.getStatus().name();
 
         // Step执行时长
-        stepSample.stop(Timer.builder("batch.step.duration")
-            .tag("job_name", jobName)
-            .tag("step_name", stepName)
-            .tag("status", status)
-            .register(meterRegistry));
+        Timer.Sample sample = stepSamples.remove(stepExecution.getId());
+        if (sample != null) {
+            sample.stop(Timer.builder("batch.step.duration")
+                .tag("job_name", jobName)
+                .tag("step_name", stepName)
+                .tag("status", status)
+                .register(meterRegistry));
+        }
 
         // Step读取/写入/跳过数量
         meterRegistry.counter("batch.step.read.count",
@@ -94,18 +104,19 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
             stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount());
 
         // 吞吐量（records/s）
-        Duration duration = Duration.between(stepExecution.getStartTime(), stepExecution.getEndTime());
-        double throughput = stepExecution.getWriteCount() / (duration.toMillis() / 1000.0);
-        meterRegistry.gauge("batch.step.throughput",
-            java.util.List.of(
-                io.micrometer.core.instrument.Tag.of("job_name", jobName),
-                io.micrometer.core.instrument.Tag.of("step_name", stepName)
-            ), throughput);
-
-        log.info("Step completed: {} - status={}, read={}, write={}, skip={}, throughput={} records/s",
-            stepName, status, stepExecution.getReadCount(), stepExecution.getWriteCount(),
-            stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount(),
-            String.format("%.2f", throughput));
+        LocalDateTime startTime = stepExecution.getStartTime();
+        LocalDateTime endTime = stepExecution.getEndTime();
+        if (startTime != null && endTime != null) {
+            Duration duration = Duration.between(startTime, endTime);
+            long millis = duration.toMillis();
+            if (millis > 0) {
+                double throughput = stepExecution.getWriteCount() / (millis / 1000.0);
+                log.info("Step completed: {} - status={}, read={}, write={}, skip={}, throughput={} records/s",
+                    stepName, status, stepExecution.getReadCount(), stepExecution.getWriteCount(),
+                    stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount(),
+                    String.format("%.2f", throughput));
+            }
+        }
 
         return null;
     }

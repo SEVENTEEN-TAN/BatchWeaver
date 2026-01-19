@@ -44,7 +44,7 @@ public class ExportJobExamples {
         reader.setRowMapper(new AnnotationRowMapper<>(DemoUser.class));
 
         SqlServerPagingQueryProvider queryProvider = new SqlServerPagingQueryProvider();
-        queryProvider.setSelectClause("SELECT id, name, email, birth_date");
+        queryProvider.setSelectClause("SELECT id AS userId, name AS userName, email, birth_date AS birthDate");
         queryProvider.setFromClause("FROM DEMO_USER");
         queryProvider.setSortKeys(new HashMap<String, Order>() {{
             put("id", Order.ASCENDING);
@@ -87,7 +87,7 @@ public class ExportJobExamples {
         reader.setRowMapper(new AnnotationRowMapper<>(DemoUser.class));
 
         SqlServerPagingQueryProvider queryProvider = new SqlServerPagingQueryProvider();
-        queryProvider.setSelectClause("SELECT id, name, email, birth_date");
+        queryProvider.setSelectClause("SELECT id AS userId, name AS userName, email, birth_date AS birthDate");
         queryProvider.setFromClause("FROM DEMO_USER");
         queryProvider.setSortKeys(new HashMap<String, Order>() {{
             put("id", Order.ASCENDING);

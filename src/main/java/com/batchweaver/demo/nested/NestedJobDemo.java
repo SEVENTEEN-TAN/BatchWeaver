@@ -5,7 +5,6 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
-import org.springframework.batch.core.step.job.JobStep;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,9 +37,9 @@ public class NestedJobDemo {
     }
 
     private Step createJobStep(JobRepository jobRepository, Job job, String stepName) {
-        return new JobStep(new StepBuilder(stepName, jobRepository)
+        return new StepBuilder(stepName, jobRepository)
             .job(job)
-            .build());
+            .build();
     }
 
     /**
