@@ -101,6 +101,7 @@ batch-weaver/
 │   ├── 技术框架.md              # 框架架构与设计模式
 │   ├── 多数据源.md              # 多数据源配置与事务隔离
 │   ├── 文件读写.md              # 单次扫描架构设计
+│   ├── 元数据表.md              # Spring Batch 元数据表说明
 │   └── 测试文档.md              # 测试用例与验证方法
 └── src/test/java/               # 集成测试
 ```
@@ -115,6 +116,7 @@ batch-weaver/
 | [技术框架.md](docs/技术框架.md) | 框架架构、设计模式、核心组件 |
 | [多数据源.md](docs/多数据源.md) | 多数据源配置、事务隔离机制 |
 | [文件读写.md](docs/文件读写.md) | 单次扫描架构、HeaderFooterAwareReader |
+| [元数据表.md](docs/元数据表.md) | Spring Batch 元数据表结构与断点续传 |
 | [测试文档.md](docs/测试文档.md) | 测试用例、验证方法、性能基准 |
 
 ---
