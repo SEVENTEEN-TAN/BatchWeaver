@@ -3,10 +3,14 @@ package com.batchweaver.core.config;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.launch.JobOperator;
+import org.springframework.batch.core.launch.support.SimpleJobOperator;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.batch.core.configuration.JobRegistry;
+import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -73,5 +77,40 @@ public class BatchInfrastructureConfig {
         // Spring Batch 5.x 会自动检测数据库类型，无需手动设置
         factory.afterPropertiesSet();
         return factory.getObject();
+    }
+
+    /**
+     * JobRegistry 配置（用于注册和查找 Job）
+     * JobOperator 需要通过 JobRegistry 来查找 Job
+     */
+    @Bean
+    public JobRegistry jobRegistry() {
+        return new org.springframework.batch.core.configuration.support.MapJobRegistry();
+    }
+
+    /**
+     * JobRegistryBeanPostProcessor 配置
+     * 自动将所有 Job Bean 注册到 JobRegistry
+     */
+    @Bean
+    public JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
+        JobRegistryBeanPostProcessor postProcessor = new JobRegistryBeanPostProcessor();
+        postProcessor.setJobRegistry(jobRegistry);
+        return postProcessor;
+    }
+
+    /**
+     * JobOperator 配置（支持 Job 重启等高级操作）
+     * 用于断点续传场景
+     */
+    @Bean
+    public JobOperator jobOperator(JobExplorer jobExplorer, JobRepository jobRepository,
+                                    JobRegistry jobRegistry, JobLauncher jobLauncher) throws Exception {
+        SimpleJobOperator jobOperator = new SimpleJobOperator();
+        jobOperator.setJobExplorer(jobExplorer);
+        jobOperator.setJobRepository(jobRepository);
+        jobOperator.setJobRegistry(jobRegistry);
+        jobOperator.setJobLauncher(jobLauncher);
+        return jobOperator;
     }
 }
