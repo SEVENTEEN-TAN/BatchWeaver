@@ -4,6 +4,7 @@ import com.batchweaver.core.fileprocess.function.FooterGenerator;
 import com.batchweaver.core.fileprocess.function.HeaderGenerator;
 import com.batchweaver.core.fileprocess.listener.UniversalErrorListener;
 import com.batchweaver.core.fileprocess.writer.AnnotationFieldExtractor;
+import org.springframework.batch.item.file.FlatFileParseException;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.batch.core.Job;
@@ -20,6 +21,7 @@ import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.WritableResource;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.validation.BindException;
 
 import java.io.IOException;
 import java.io.Writer;
@@ -55,11 +57,13 @@ public class FileExportJobTemplate {
             .reader(definition.getReader())
             .writer(writer);
 
-        // 错误处理
+        // 错误处理：限定为可恢复的异常类型
         if (definition.getSkipLimit() > 0) {
             chunkBuilder
                 .faultTolerant()
-                .skip(Exception.class)
+                .skip(FlatFileParseException.class)
+                .skip(BindException.class)
+                .skip(IllegalArgumentException.class)
                 .skipLimit(definition.getSkipLimit())
                 .listener(new UniversalErrorListener());
         }

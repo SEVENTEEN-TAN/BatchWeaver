@@ -5,7 +5,6 @@ import com.batchweaver.batch.service.Db2BusinessService;
 import com.batchweaver.core.processor.DataCleansingProcessor;
 import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
 import com.batchweaver.core.fileprocess.function.*;
-import com.batchweaver.core.fileprocess.listener.HeaderFooterListener;
 import com.batchweaver.core.fileprocess.model.FooterInfo;
 import com.batchweaver.core.fileprocess.model.HeaderInfo;
 import org.springframework.batch.core.Job;
@@ -102,8 +101,9 @@ public class ImportJobExamples {
             .reader(reader)
             .processor(processor)
             .writer(writer)
-            .listener(new HeaderFooterListener(resource, headerParser, headerValidator,
-                footerParser, footerValidator))
+            // 注意：旧架构使用 HeaderFooterListener，现已迁移到 HeaderFooterAwareReader
+            // 此示例仍使用 FlatFileItemReader + linesToSkip(1) 跳过 Header
+            // 如需完整的头尾校验，请使用 HeaderFooterAwareReader
             .build();
 
         return new JobBuilder("format1ImportJob", jobRepository)
@@ -172,8 +172,9 @@ public class ImportJobExamples {
             .reader(reader)
             .processor(processor)
             .writer(writer)
-            .listener(new HeaderFooterListener(resource, headerParser, headerValidator,
-                footerParser, footerValidator))
+            // 注意：旧架构使用 HeaderFooterListener，现已迁移到 HeaderFooterAwareReader
+            // 此示例仍使用 FlatFileItemReader + linesToSkip(1) 跳过 Header
+            // 如需完整的头尾校验，请使用 HeaderFooterAwareReader
             .build();
 
         return new JobBuilder("format2ImportJob", jobRepository)

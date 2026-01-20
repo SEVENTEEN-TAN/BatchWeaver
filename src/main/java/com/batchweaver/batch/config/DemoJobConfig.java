@@ -12,6 +12,7 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.validation.BindException;
 
 /**
  * 示例 Job 配置 - 文件导入到 db2
@@ -85,7 +87,9 @@ public class DemoJobConfig {
                 .writer(writer)
                 .faultTolerant()
                 .skipLimit(10)
-                .skip(Exception.class)
+                .skip(FlatFileParseException.class)      // 文件解析异常
+                .skip(BindException.class)               // 字段绑定异常
+                .skip(IllegalArgumentException.class)     // 非法参数异常
                 .build();
     }
 

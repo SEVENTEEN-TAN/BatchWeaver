@@ -1,6 +1,5 @@
 package com.batchweaver.core.config;
 
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -24,12 +23,11 @@ import javax.sql.DataSource;
  * - JobRepository 使用 tm1 管理元数据表（BATCH_JOB_EXECUTION、BATCH_STEP_EXECUTION 等）
  * - Step 使用 tm2/tm3/tm4 管理业务数据
  * - 业务失败时：tm2 回滚，tm1 提交 FAILED 状态
+ * <p>
+ * 注意：不使用 @EnableBatchProcessing，改为显式定义所有基础设施 Bean，
+ * 避免 Bean 重复注册冲突，并确保数据源和事务管理器正确绑定。
  */
 @Configuration
-@EnableBatchProcessing(
-        dataSourceRef = "dataSource1",
-        transactionManagerRef = "tm1"
-)
 public class BatchInfrastructureConfig {
 
     /**
