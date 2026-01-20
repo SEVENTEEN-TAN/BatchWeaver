@@ -68,10 +68,3 @@ logging:
     com.zaxxer.hikari: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-
-# 批处理配置
-batch:
-  chunk-size: 100
-  file:
-    base-path: /data/batch/files
-    allowed-extensions: txt,csv,dat

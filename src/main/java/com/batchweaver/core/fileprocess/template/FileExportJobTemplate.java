@@ -4,7 +4,6 @@ import com.batchweaver.core.fileprocess.function.FooterGenerator;
 import com.batchweaver.core.fileprocess.function.HeaderGenerator;
 import com.batchweaver.core.fileprocess.listener.UniversalErrorListener;
 import com.batchweaver.core.fileprocess.writer.AnnotationFieldExtractor;
-import org.springframework.batch.item.file.FlatFileParseException;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.batch.core.Job;
@@ -16,9 +15,9 @@ import org.springframework.batch.core.scope.context.StepSynchronizationManager;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.WritableResource;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.validation.BindException;
@@ -41,8 +40,8 @@ public class FileExportJobTemplate {
         Step step = buildStep(definition);
 
         return new JobBuilder(definition.getJobName(), definition.getJobRepository())
-            .start(step)
-            .build();
+                .start(step)
+                .build();
     }
 
     /**
@@ -53,19 +52,19 @@ public class FileExportJobTemplate {
         FlatFileItemWriter<T> writer = buildWriter(definition);
 
         var chunkBuilder = new StepBuilder(definition.getStepName(), definition.getJobRepository())
-            .<T, T>chunk(definition.getChunkSize(), definition.getTransactionManager())
-            .reader(definition.getReader())
-            .writer(writer);
+                .<T, T>chunk(definition.getChunkSize(), definition.getTransactionManager())
+                .reader(definition.getReader())
+                .writer(writer);
 
         // 错误处理：限定为可恢复的异常类型
         if (definition.getSkipLimit() > 0) {
             chunkBuilder
-                .faultTolerant()
-                .skip(FlatFileParseException.class)
-                .skip(BindException.class)
-                .skip(IllegalArgumentException.class)
-                .skipLimit(definition.getSkipLimit())
-                .listener(new UniversalErrorListener());
+                    .faultTolerant()
+                    .skip(FlatFileParseException.class)
+                    .skip(BindException.class)
+                    .skip(IllegalArgumentException.class)
+                    .skipLimit(definition.getSkipLimit())
+                    .listener(new UniversalErrorListener());
         }
 
         return chunkBuilder.build();
@@ -75,11 +74,11 @@ public class FileExportJobTemplate {
         FlatFileItemWriterBuilder<T> builder = new FlatFileItemWriterBuilder<>();
 
         builder.name(definition.getStepName() + "Writer")
-            .resource(definition.getResource())
-            .lineAggregator(new DelimitedLineAggregator<T>() {{
-                setDelimiter(definition.getDelimiter());
-                setFieldExtractor(new AnnotationFieldExtractor<>(definition.getEntityClass()));
-            }});
+                .resource(definition.getResource())
+                .lineAggregator(new DelimitedLineAggregator<T>() {{
+                    setDelimiter(definition.getDelimiter());
+                    setFieldExtractor(new AnnotationFieldExtractor<>(definition.getEntityClass()));
+                }});
 
         // 头生成
         if (definition.getHeaderGenerator() != null) {

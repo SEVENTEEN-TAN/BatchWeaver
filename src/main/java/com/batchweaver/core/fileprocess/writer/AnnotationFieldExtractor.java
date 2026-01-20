@@ -22,9 +22,9 @@ public class AnnotationFieldExtractor<T> implements FieldExtractor<T> {
     public AnnotationFieldExtractor(Class<T> targetType) {
         this.targetType = targetType;
         this.sortedFields = Arrays.stream(targetType.getDeclaredFields())
-            .filter(f -> f.isAnnotationPresent(FileColumn.class))
-            .sorted(Comparator.comparingInt(f -> f.getAnnotation(FileColumn.class).index()))
-            .toArray(Field[]::new);
+                .filter(f -> f.isAnnotationPresent(FileColumn.class))
+                .sorted(Comparator.comparingInt(f -> f.getAnnotation(FileColumn.class).index()))
+                .toArray(Field[]::new);
     }
 
     @Override

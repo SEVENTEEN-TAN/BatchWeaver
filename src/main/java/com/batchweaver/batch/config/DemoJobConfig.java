@@ -1,9 +1,9 @@
 package com.batchweaver.batch.config;
 
+import com.batchweaver.batch.entity.DemoUser;
 import com.batchweaver.batch.service.Db2BusinessService;
 import com.batchweaver.core.processor.DataCleansingProcessor;
 import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
-import com.batchweaver.batch.entity.DemoUser;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;

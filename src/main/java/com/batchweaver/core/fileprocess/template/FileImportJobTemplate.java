@@ -1,6 +1,9 @@
 package com.batchweaver.core.fileprocess.template;
 
-import com.batchweaver.core.fileprocess.function.*;
+import com.batchweaver.core.fileprocess.function.FooterParser;
+import com.batchweaver.core.fileprocess.function.FooterValidator;
+import com.batchweaver.core.fileprocess.function.HeaderParser;
+import com.batchweaver.core.fileprocess.function.HeaderValidator;
 import com.batchweaver.core.fileprocess.listener.UniversalErrorListener;
 import com.batchweaver.core.fileprocess.reader.FooterLineDetector;
 import com.batchweaver.core.fileprocess.reader.HeaderFooterAwareReader;
@@ -38,8 +41,8 @@ public class FileImportJobTemplate {
         Step step = buildStep(definition);
 
         return new JobBuilder(definition.getJobName(), definition.getJobRepository())
-            .start(step)
-            .build();
+                .start(step)
+                .build();
     }
 
     /**
@@ -50,9 +53,9 @@ public class FileImportJobTemplate {
      */
     public <I, O> Step buildStep(FileImportJobDefinition<I, O> definition) {
         var chunkBuilder = new StepBuilder(definition.getStepName(), definition.getJobRepository())
-            .<I, O>chunk(definition.getChunkSize(), definition.getTransactionManager())
-            .reader(definition.getReader())
-            .writer(definition.getWriter());
+                .<I, O>chunk(definition.getChunkSize(), definition.getTransactionManager())
+                .reader(definition.getReader())
+                .writer(definition.getWriter());
 
         // 可选：Processor
         if (definition.getProcessor() != null) {
@@ -65,21 +68,21 @@ public class FileImportJobTemplate {
         // 错误处理：限定为可恢复的异常类型
         if (definition.getSkipLimit() > 0) {
             chunkBuilder
-                .faultTolerant()
-                .skip(FlatFileParseException.class)      // 文件解析异常
-                .skip(BindException.class)               // 字段绑定异常
-                .skip(IllegalArgumentException.class)     // 非法参数异常
-                .skipLimit(definition.getSkipLimit())
-                .listener(new UniversalErrorListener());
+                    .faultTolerant()
+                    .skip(FlatFileParseException.class)      // 文件解析异常
+                    .skip(BindException.class)               // 字段绑定异常
+                    .skip(IllegalArgumentException.class)     // 非法参数异常
+                    .skipLimit(definition.getSkipLimit())
+                    .listener(new UniversalErrorListener());
         }
 
         // 可选：Retry（同样限定异常类型）
         if (definition.getRetryLimit() > 0) {
             chunkBuilder
-                .faultTolerant()
-                .retry(FlatFileParseException.class)
-                .retry(BindException.class)
-                .retryLimit(definition.getRetryLimit());
+                    .faultTolerant()
+                    .retry(FlatFileParseException.class)
+                    .retry(BindException.class)
+                    .retryLimit(definition.getRetryLimit());
         }
 
         return chunkBuilder.build();
@@ -98,8 +101,8 @@ public class FileImportJobTemplate {
      * <p>
      * <b>使用示例：</b>
      * <pre>{@code
-     // 创建延迟决策Reader
-     HeaderFooterAwareReader<User> reader = template.createDeferredDecisionReader(
+     * // 创建延迟决策Reader
+     * HeaderFooterAwareReader<User> reader = template.createDeferredDecisionReader(
      *     resource,           // 文件资源
      *     headerParser,       // Header解析器（可选）
      *     headerValidator,    // Header校验器（可选）
@@ -119,22 +122,22 @@ public class FileImportJobTemplate {
      * @param lineTokenizer      行分词器
      * @param fieldSetMapper     字段映射器
      * @param footerLineDetector Footer检测器（可选，默认支持纯数字、T|前缀、R前缀）
-     * @param <T> item type
+     * @param <T>                item type
      * @return 延迟决策Reader
      */
     public <T> HeaderFooterAwareReader<T> createDeferredDecisionReader(
-        Resource resource,
-        HeaderParser headerParser,
-        HeaderValidator headerValidator,
-        FooterParser footerParser,
-        FooterValidator footerValidator,
-        LineTokenizer lineTokenizer,
-        FieldSetMapper<T> fieldSetMapper,
-        FooterLineDetector footerLineDetector
+            Resource resource,
+            HeaderParser headerParser,
+            HeaderValidator headerValidator,
+            FooterParser footerParser,
+            FooterValidator footerValidator,
+            LineTokenizer lineTokenizer,
+            FieldSetMapper<T> fieldSetMapper,
+            FooterLineDetector footerLineDetector
     ) {
         return new HeaderFooterAwareReader<>(
-            resource, headerParser, headerValidator, footerParser, footerValidator,
-            lineTokenizer, fieldSetMapper, footerLineDetector
+                resource, headerParser, headerValidator, footerParser, footerValidator,
+                lineTokenizer, fieldSetMapper, footerLineDetector
         );
     }
 
@@ -148,21 +151,21 @@ public class FileImportJobTemplate {
      * @param footerValidator Footer校验器（可选）
      * @param lineTokenizer   行分词器
      * @param fieldSetMapper  字段映射器
-     * @param <T> item type
+     * @param <T>             item type
      * @return 延迟决策Reader
      */
     public <T> HeaderFooterAwareReader<T> createDeferredDecisionReader(
-        Resource resource,
-        HeaderParser headerParser,
-        HeaderValidator headerValidator,
-        FooterParser footerParser,
-        FooterValidator footerValidator,
-        LineTokenizer lineTokenizer,
-        FieldSetMapper<T> fieldSetMapper
+            Resource resource,
+            HeaderParser headerParser,
+            HeaderValidator headerValidator,
+            FooterParser footerParser,
+            FooterValidator footerValidator,
+            LineTokenizer lineTokenizer,
+            FieldSetMapper<T> fieldSetMapper
     ) {
         return new HeaderFooterAwareReader<>(
-            resource, headerParser, headerValidator, footerParser, footerValidator,
-            lineTokenizer, fieldSetMapper, FooterLineDetector.defaultDetector()
+                resource, headerParser, headerValidator, footerParser, footerValidator,
+                lineTokenizer, fieldSetMapper, FooterLineDetector.defaultDetector()
         );
     }
 
@@ -171,30 +174,30 @@ public class FileImportJobTemplate {
      * <p>
      * <b>已废弃</b>：请使用包含 FooterValidator 参数的新方法
      *
-     * @param resource        文件资源
-     * @param headerParser    Header解析器（可选）
-     * @param headerValidator Header校验器（可选）
-     * @param footerParser    Footer解析器（可选）
-     * @param lineTokenizer   行分词器
-     * @param fieldSetMapper  字段映射器
+     * @param resource           文件资源
+     * @param headerParser       Header解析器（可选）
+     * @param headerValidator    Header校验器（可选）
+     * @param footerParser       Footer解析器（可选）
+     * @param lineTokenizer      行分词器
+     * @param fieldSetMapper     字段映射器
      * @param footerLineDetector Footer检测器（可选）
-     * @param <T> item type
+     * @param <T>                item type
      * @return 延迟决策Reader
      * @deprecated 请使用包含 FooterValidator 参数的新方法
      */
     @Deprecated
     public <T> HeaderFooterAwareReader<T> createDeferredDecisionReaderCompat(
-        Resource resource,
-        HeaderParser headerParser,
-        HeaderValidator headerValidator,
-        FooterParser footerParser,
-        LineTokenizer lineTokenizer,
-        FieldSetMapper<T> fieldSetMapper,
-        FooterLineDetector footerLineDetector
+            Resource resource,
+            HeaderParser headerParser,
+            HeaderValidator headerValidator,
+            FooterParser footerParser,
+            LineTokenizer lineTokenizer,
+            FieldSetMapper<T> fieldSetMapper,
+            FooterLineDetector footerLineDetector
     ) {
         return new HeaderFooterAwareReader<>(
-            resource, headerParser, headerValidator, footerParser, null,
-            lineTokenizer, fieldSetMapper, footerLineDetector
+                resource, headerParser, headerValidator, footerParser, null,
+                lineTokenizer, fieldSetMapper, footerLineDetector
         );
     }
 
@@ -209,22 +212,22 @@ public class FileImportJobTemplate {
      * @param footerParser    Footer解析器（可选）
      * @param lineTokenizer   行分词器
      * @param fieldSetMapper  字段映射器
-     * @param <T> item type
+     * @param <T>             item type
      * @return 延迟决策Reader
      * @deprecated 请使用包含 FooterValidator 参数的新方法
      */
     @Deprecated
     public <T> HeaderFooterAwareReader<T> createDeferredDecisionReaderCompat(
-        Resource resource,
-        HeaderParser headerParser,
-        HeaderValidator headerValidator,
-        FooterParser footerParser,
-        LineTokenizer lineTokenizer,
-        FieldSetMapper<T> fieldSetMapper
+            Resource resource,
+            HeaderParser headerParser,
+            HeaderValidator headerValidator,
+            FooterParser footerParser,
+            LineTokenizer lineTokenizer,
+            FieldSetMapper<T> fieldSetMapper
     ) {
         return new HeaderFooterAwareReader<>(
-            resource, headerParser, headerValidator, footerParser, null,
-            lineTokenizer, fieldSetMapper, FooterLineDetector.defaultDetector()
+                resource, headerParser, headerValidator, footerParser, null,
+                lineTokenizer, fieldSetMapper, FooterLineDetector.defaultDetector()
         );
     }
 

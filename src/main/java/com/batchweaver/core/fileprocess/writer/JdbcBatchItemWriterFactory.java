@@ -24,11 +24,11 @@ public class JdbcBatchItemWriterFactory {
      */
     public static <T> JdbcBatchItemWriter<T> create(DataSource dataSource, String sql, Class<T> itemType) {
         return new JdbcBatchItemWriterBuilder<T>()
-            .dataSource(dataSource)
-            .sql(sql)
-            .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
-            .assertUpdates(false)  // 不强制校验更新数量（提升性能）
-            .build();
+                .dataSource(dataSource)
+                .sql(sql)
+                .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
+                .assertUpdates(false)  // 不强制校验更新数量（提升性能）
+                .build();
     }
 
     /**

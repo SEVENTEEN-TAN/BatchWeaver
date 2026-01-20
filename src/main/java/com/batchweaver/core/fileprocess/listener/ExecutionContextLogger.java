@@ -51,22 +51,22 @@ public class ExecutionContextLogger implements JobExecutionListener, StepExecuti
             long stepDurationMs = 0;
             if (stepExecution.getStartTime() != null && stepExecution.getEndTime() != null) {
                 stepDurationMs = Duration.between(
-                    stepExecution.getStartTime(),
-                    stepExecution.getEndTime()
+                        stepExecution.getStartTime(),
+                        stepExecution.getEndTime()
                 ).toMillis();
             }
             steps.add(new StepSummary(
-                stepExecution.getStepName(),
-                stepExecution.getExitStatus().getExitCode(),
-                stepExecution.getReadCount(),
-                stepExecution.getWriteCount(),
-                stepExecution.getSkipCount(),
-                stepDurationMs
+                    stepExecution.getStepName(),
+                    stepExecution.getExitStatus().getExitCode(),
+                    stepExecution.getReadCount(),
+                    stepExecution.getWriteCount(),
+                    stepExecution.getSkipCount(),
+                    stepDurationMs
             ));
         }
 
         boolean hasWarnings = steps.stream().anyMatch(s ->
-            s.exitStatus().equals("FAILED") || s.skipCount() > 0
+                s.exitStatus().equals("FAILED") || s.skipCount() > 0
         );
 
         StringBuilder summary = new StringBuilder("\n");
@@ -74,9 +74,9 @@ public class ExecutionContextLogger implements JobExecutionListener, StepExecuti
         summary.append("  EXECUTION SUMMARY\n");
         summary.append(LINE).append("\n");
         summary.append(String.format("  Total Duration : %d min %d sec%n",
-            duration.toMinutes(), duration.toSecondsPart()));
+                duration.toMinutes(), duration.toSecondsPart()));
         summary.append(String.format("  Final Status   : %s",
-            jobExecution.getExitStatus().getExitCode()));
+                jobExecution.getExitStatus().getExitCode()));
 
         if (hasWarnings) {
             summary.append(" (with warnings)");
@@ -86,17 +86,17 @@ public class ExecutionContextLogger implements JobExecutionListener, StepExecuti
         summary.append("  Step Details   :\n");
         summary.append("  " + SEPARATOR + "\n");
         summary.append(String.format("  | %-20s | %-12s | %6s | %6s | %4s | %8s |%n",
-            "Step Name", "Status", "Read", "Write", "Skip", "Duration"));
+                "Step Name", "Status", "Read", "Write", "Skip", "Duration"));
         summary.append("  " + SEPARATOR + "\n");
 
         for (StepSummary step : steps) {
             summary.append(String.format("  | %-20s | %-12s | %6d | %6d | %4d | %8s |%n",
-                step.stepName(),
-                step.exitStatus(),
-                step.readCount(),
-                step.writeCount(),
-                step.skipCount(),
-                formatDuration(step.durationMs())
+                    step.stepName(),
+                    step.exitStatus(),
+                    step.readCount(),
+                    step.writeCount(),
+                    step.skipCount(),
+                    formatDuration(step.durationMs())
             ));
         }
 
@@ -116,18 +116,18 @@ public class ExecutionContextLogger implements JobExecutionListener, StepExecuti
         long durationMs = 0;
         if (stepExecution.getEndTime() != null && stepExecution.getStartTime() != null) {
             durationMs = Duration.between(
-                stepExecution.getStartTime(),
-                stepExecution.getEndTime()
+                    stepExecution.getStartTime(),
+                    stepExecution.getEndTime()
             ).toMillis();
         }
 
         log.info("Step '{}' completed: status={}, read={}, write={}, skip={}, duration={}",
-            stepExecution.getStepName(),
-            stepExecution.getExitStatus().getExitCode(),
-            stepExecution.getReadCount(),
-            stepExecution.getWriteCount(),
-            stepExecution.getSkipCount(),
-            formatDuration(durationMs)
+                stepExecution.getStepName(),
+                stepExecution.getExitStatus().getExitCode(),
+                stepExecution.getReadCount(),
+                stepExecution.getWriteCount(),
+                stepExecution.getSkipCount(),
+                formatDuration(durationMs)
         );
 
         return stepExecution.getExitStatus();
@@ -147,11 +147,12 @@ public class ExecutionContextLogger implements JobExecutionListener, StepExecuti
     }
 
     private record StepSummary(
-        String stepName,
-        String exitStatus,
-        long readCount,
-        long writeCount,
-        long skipCount,
-        long durationMs
-    ) {}
+            String stepName,
+            String exitStatus,
+            long readCount,
+            long writeCount,
+            long skipCount,
+            long durationMs
+    ) {
+    }
 }

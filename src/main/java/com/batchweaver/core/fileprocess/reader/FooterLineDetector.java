@@ -50,8 +50,8 @@ public interface FooterLineDetector {
                 return false;
             }
             return PURE_NUMBER.matcher(trimmed).matches()
-                || T_PREFIX.matcher(trimmed).matches()
-                || R_PREFIX.matcher(trimmed).matches();
+                    || T_PREFIX.matcher(trimmed).matches()
+                    || R_PREFIX.matcher(trimmed).matches();
         }
     }
 }

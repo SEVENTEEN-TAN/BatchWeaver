@@ -3,11 +3,7 @@ package com.batchweaver.core.fileprocess.listener;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.ExitStatus;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobExecutionListener;
-import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.batch.core.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -56,31 +52,31 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
         Timer.Sample sample = jobSamples.remove(jobId);
         if (sample != null) {
             sample.stop(Timer.builder("batch.job.duration")
-                .tag("job_name", jobName)
-                .tag("status", status)
-                .register(meterRegistry));
+                    .tag("job_name", jobName)
+                    .tag("status", status)
+                    .register(meterRegistry));
         }
 
         // Job读取/写入/跳过数量
         long readCount = jobExecution.getStepExecutions().stream()
-            .mapToLong(StepExecution::getReadCount)
-            .sum();
+                .mapToLong(StepExecution::getReadCount)
+                .sum();
         long writeCount = jobExecution.getStepExecutions().stream()
-            .mapToLong(StepExecution::getWriteCount)
-            .sum();
+                .mapToLong(StepExecution::getWriteCount)
+                .sum();
         long skipCount = jobExecution.getStepExecutions().stream()
-            .mapToLong(se -> se.getReadSkipCount() + se.getWriteSkipCount() + se.getProcessSkipCount())
-            .sum();
+                .mapToLong(se -> se.getReadSkipCount() + se.getWriteSkipCount() + se.getProcessSkipCount())
+                .sum();
 
         meterRegistry.counter("batch.job.read.count",
-            "job_name", jobName).increment(readCount);
+                "job_name", jobName).increment(readCount);
         meterRegistry.counter("batch.job.write.count",
-            "job_name", jobName).increment(writeCount);
+                "job_name", jobName).increment(writeCount);
         meterRegistry.counter("batch.job.skip.count",
-            "job_name", jobName).increment(skipCount);
+                "job_name", jobName).increment(skipCount);
 
         log.info("Job completed: {} - status={}, read={}, write={}, skip={}",
-            jobName, status, readCount, writeCount, skipCount);
+                jobName, status, readCount, writeCount, skipCount);
     }
 
     @Override
@@ -111,20 +107,20 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
         Timer.Sample sample = stepSamples.remove(stepId);
         if (sample != null) {
             sample.stop(Timer.builder("batch.step.duration")
-                .tag("job_name", jobName)
-                .tag("step_name", stepName)
-                .tag("status", status)
-                .register(meterRegistry));
+                    .tag("job_name", jobName)
+                    .tag("step_name", stepName)
+                    .tag("status", status)
+                    .register(meterRegistry));
         }
 
         // Step读取/写入/跳过数量
         meterRegistry.counter("batch.step.read.count",
-            "job_name", jobName, "step_name", stepName).increment(stepExecution.getReadCount());
+                "job_name", jobName, "step_name", stepName).increment(stepExecution.getReadCount());
         meterRegistry.counter("batch.step.write.count",
-            "job_name", jobName, "step_name", stepName).increment(stepExecution.getWriteCount());
+                "job_name", jobName, "step_name", stepName).increment(stepExecution.getWriteCount());
         meterRegistry.counter("batch.step.skip.count",
-            "job_name", jobName, "step_name", stepName).increment(
-            stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount());
+                "job_name", jobName, "step_name", stepName).increment(
+                stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount());
 
         // 计算吞吐量（records/s）
         String throughputStr = "N/A";
@@ -141,9 +137,9 @@ public class MetricsListener implements JobExecutionListener, StepExecutionListe
 
         // 始终记录 Step 完成日志
         log.info("Step completed: {} - status={}, read={}, write={}, skip={}, throughput={} records/s",
-            stepName, status, stepExecution.getReadCount(), stepExecution.getWriteCount(),
-            stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount(),
-            throughputStr);
+                stepName, status, stepExecution.getReadCount(), stepExecution.getWriteCount(),
+                stepExecution.getReadSkipCount() + stepExecution.getWriteSkipCount() + stepExecution.getProcessSkipCount(),
+                throughputStr);
 
         return null;
     }

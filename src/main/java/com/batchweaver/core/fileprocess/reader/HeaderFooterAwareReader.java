@@ -15,7 +15,6 @@ import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.file.mapping.FieldSetMapper;
 import org.springframework.batch.item.file.transform.LineTokenizer;
 import org.springframework.core.io.Resource;
-import org.springframework.validation.BindException;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -142,7 +141,7 @@ public class HeaderFooterAwareReader<T> implements ItemReader<T>, ItemStream {
                                    LineTokenizer lineTokenizer,
                                    FieldSetMapper<T> fieldSetMapper) {
         this(resource, headerParser, headerValidator, footerParser, footerValidator,
-             lineTokenizer, fieldSetMapper, null);
+                lineTokenizer, fieldSetMapper, null);
     }
 
     /**
@@ -169,7 +168,7 @@ public class HeaderFooterAwareReader<T> implements ItemReader<T>, ItemStream {
         // 配置校验：如果有 footerValidator 或自定义 detector，必须有 footerParser
         if ((footerValidator != null || footerLineDetector != null) && footerParser == null) {
             throw new IllegalArgumentException(
-                "footerParser must be provided when footerValidator or footerLineDetector is configured");
+                    "footerParser must be provided when footerValidator or footerLineDetector is configured");
         }
     }
 
@@ -272,7 +271,7 @@ public class HeaderFooterAwareReader<T> implements ItemReader<T>, ItemStream {
                     try {
                         footerValidator.validate(footerInfo, actualRecordCount);
                         log.info("Footer validation passed: expected={}, actual={}",
-                            footerInfo.getCount(), actualRecordCount);
+                                footerInfo.getCount(), actualRecordCount);
                     } catch (Exception e) {
                         throw new ItemStreamException("Footer validation failed: " + e.getMessage(), e);
                     }
@@ -295,7 +294,7 @@ public class HeaderFooterAwareReader<T> implements ItemReader<T>, ItemStream {
         try {
             log.debug("Opening resource: {}", resource);
             reader = new BufferedReader(
-                new InputStreamReader(resource.getInputStream(), charset));
+                    new InputStreamReader(resource.getInputStream(), charset));
             // 重置所有状态
             resetState();
         } catch (Exception e) {

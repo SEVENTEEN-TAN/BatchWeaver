@@ -1,5 +1,5 @@
-H|20261231|DEMO_FILE
-1|John Doe|john@example.com|19900115
-2|Jane Smith|jane@example.com|19850622
-3|Bob Johnson|bob@example.com|19781203
+H|20260120|USER_IMPORT
+1|张三|25|zhangsan@example.com|1990-01-15
+2|李四|30|lisi@example.com|1985-06-20
+3|王五|28|wangwu@example.com|1987-03-10
 T|3

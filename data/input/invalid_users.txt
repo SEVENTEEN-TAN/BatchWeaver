@@ -1,0 +1,4 @@
+20260119
+张三,INVALID,zhangsan@example.com,1990-01-15
+李四,30,lisi@example.com,1985-06-20
+3
