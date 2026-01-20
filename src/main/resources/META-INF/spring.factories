@@ -1,0 +1,4 @@
+# Spring Boot Environment Post Processor Registration
+# 在 Spring Boot 启动前执行，用于解密配置文件中的敏感信息
+org.springframework.boot.env.EnvironmentPostProcessor=\
+com.batchweaver.core.config.DecryptEnvironmentPostProcessor
