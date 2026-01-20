@@ -53,10 +53,10 @@ spring:
   # Spring Batch 配置
   batch:
     jdbc:
-      initialize-schema: always
+      initialize-schema: never  # 不自动创建表，需用户手动初始化
       table-prefix: BATCH_
     job:
-      enabled: false
+      enabled: false  # 禁止自动启动，通过 JobLauncher 手动触发
 
 # 日志配置
 logging:
