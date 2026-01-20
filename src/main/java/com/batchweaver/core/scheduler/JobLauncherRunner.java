@@ -9,11 +9,16 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -75,6 +80,16 @@ public class JobLauncherRunner implements ApplicationRunner {
     private static final String PARAM_JOB_NAME = "job.name";
     private static final String PARAM_JOB_ID = "job.id";
 
+    // Spring Batch 元数据表
+    private static final String[] BATCH_METADATA_TABLES = {
+            "BATCH_JOB_INSTANCE",
+            "BATCH_JOB_EXECUTION",
+            "BATCH_JOB_EXECUTION_PARAMS",
+            "BATCH_STEP_EXECUTION",
+            "BATCH_STEP_EXECUTION_CONTEXT",
+            "BATCH_JOB_EXECUTION_CONTEXT"
+    };
+
     @Autowired
     private JobLauncher jobLauncher;
 
@@ -87,8 +102,15 @@ public class JobLauncherRunner implements ApplicationRunner {
     @Autowired
     private JobRegistry jobRegistry;
 
+    @Autowired
+    @Qualifier("dataSource1")
+    private DataSource dataSource1;
+
     @Override
     public void run(ApplicationArguments args) throws Exception {
+        printBanner();
+        validateMetadataTables();
+
         // 检查是否提供了 --job.name
         if (!args.getOptionNames().contains(PARAM_JOB_NAME)) {
             printUsage();
@@ -135,6 +157,90 @@ public class JobLauncherRunner implements ApplicationRunner {
         });
 
         return params;
+    }
+
+    /**
+     * 打印 Banner
+     */
+    private void printBanner() {
+        log.info("");
+        log.info("================================================================================");
+        log.info("                                                                              ");
+        log.info("   ____       _                   _        ____  __  __           _          ");
+        log.info("  |  _ \\ ___ | | _____  _ __     / \\      / ___||  \\/  | ___   __| |         ");
+        log.info("  | |_) / _ \\| |/ / _ \\| '_ \\   / _ \\    \\___ \\| |\\/| |/ _ \\ / _` |        ");
+        log.info("  |  _ < (_) |   < (_) | | | | / ___ \\    ___) || |  | | (_) | (_| |        ");
+        log.info("  |_| \\_\\___/|_|\\_\\___/|_| |_|/_/   \\_\\  |____/ |_|  |_|\\___/ \\__,_|        ");
+        log.info("                                                                              ");
+        log.info("  Spring Batch 5.x Multi-Datasource Job Execution Framework                   ");
+        log.info("                                                                              ");
+        log.info("  Version: 1.0.0                                                              ");
+        log.info("  Author: BatchWeaver Team                                                   ");
+        log.info("                                                                              ");
+        log.info("================================================================================");
+        log.info("");
+    }
+
+    /**
+     * 验证 Spring Batch 元数据表是否存在
+     */
+    private void validateMetadataTables() {
+        log.info("Validating Spring Batch metadata tables...");
+
+        List<String> missingTables = new ArrayList<>();
+
+        try (Connection conn = dataSource1.getConnection()) {
+            for (String table : BATCH_METADATA_TABLES) {
+                if (!tableExists(conn, table)) {
+                    missingTables.add(table);
+                }
+            }
+        } catch (SQLException e) {
+            log.error("Failed to validate metadata tables: {}", e.getMessage());
+            log.error("Please check database connection and configuration");
+            System.exit(1);
+            return;
+        }
+
+        if (!missingTables.isEmpty()) {
+            log.error("================================================================================");
+            log.error("ERROR: Spring Batch metadata tables are missing!");
+            log.error("================================================================================");
+            log.error("Missing tables:");
+            missingTables.forEach(table -> log.error("  - {}", table));
+            log.error("");
+            log.error("Please create Spring Batch metadata tables first.");
+            log.error("You can use the following SQL script (for SQL Server):");
+            log.error("");
+            log.error("  https://github.com/spring-projects/spring-batch/blob/main/spring-batch-core/src/main/resources/org/springframework/batch/core/schema-drop-sqlserver.sql");
+            log.error("  https://github.com/spring-projects/spring-batch/blob/main/spring-batch-core/src/main/resources/org/springframework/batch/core/schema-sqlserver.sql");
+            log.error("");
+            log.error("Or execute: java -jar batchweaver.jar --spring.batch.jdbc.initialize-schema=always");
+            log.error("================================================================================");
+            System.exit(1);
+        }
+
+        log.info("All Spring Batch metadata tables are present.");
+        log.info("");
+    }
+
+    /**
+     * 检查表是否存在
+     */
+    private boolean tableExists(Connection conn, String tableName) {
+        try {
+            // SQL Server: 检查表是否存在
+            String sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?";
+            try (var ps = conn.prepareStatement(sql)) {
+                ps.setString(1, tableName);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next() && rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            log.warn("Failed to check table existence for {}: {}", tableName, e.getMessage());
+            return false;
+        }
     }
 
     /**
