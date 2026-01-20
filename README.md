@@ -1,10 +1,25 @@
 # BatchWeaver - Spring Batch 5.x 多数据源批处理系统
 
-基于 Spring Batch 5.x 的企业级批处理系统，支持多数据源、事务隔离、基于注解的文件处理框架。
+基于 Spring Batch 5.x 的企业级批处理系统，支持多数据源、事务隔离、**单次扫描大文件处理**、基于注解的文件处理框架。
 
 ## 核心特性
 
-### 1. 元数据与业务事务隔离
+### 1. 单次扫描 + 延迟决策架构 🚀
+
+**设计创新**：
+- **零启动延迟** - 不需要在 `open()` 时预先扫描整个文件
+- **O(1) 内存占用** - 只缓存两行数据（`prevLine` + `currentLine`）
+- **单次顺序扫描** - 文件只被读取一次，完全遵循操作系统预读机制
+- **Reader 自包含校验** - 头尾校验逻辑内置在 Reader 中，无需额外 Listener
+
+**适用场景**：
+- GB 级大文件处理
+- 流式数据导入
+- 金融对账、日志导入等批处理场景
+
+📖 **技术原理**：参见 [docs/文件读写.md](docs/文件读写.md)
+
+### 2. 元数据与业务事务隔离
 
 **设计原则**：
 - **元数据事务（tm1）**：绝对不受业务事务影响，必须提交成功
@@ -18,7 +33,9 @@ Step 执行失败时：
 └── ✅ 元数据事务（tm1）提交 → 记录 FAILED 状态，支持断点续传
 ```
 
-### 2. 多数据源配置
+📖 **配置详情**：参见 [docs/多数据源.md](docs/多数据源.md)
+
+### 3. 多数据源配置
 
 | 数据源 | 用途 | 事务管理器 |
 |--------|------|-----------|
@@ -27,7 +44,7 @@ Step 执行失败时：
 | db3 | 业务数据库 3 | tm3 |
 | db4 | 业务数据库 4 | tm4 |
 
-### 3. 基于注解的文件处理框架
+### 4. 基于注解的文件处理框架
 
 ```java
 @FileColumn(index = 0, name = "userId")
@@ -48,6 +65,10 @@ private String email;
 - CSV 注入防护
 - 路径安全校验
 
+📖 **框架详情**：参见 [docs/技术框架.md](docs/技术框架.md)
+
+---
+
 ## 📂 项目结构
 
 ```
@@ -57,23 +78,46 @@ batch-weaver/
 │   │   ├── datasource/          # 数据源配置（4 个数据源）
 │   │   ├── batch/               # Batch 基础设施 + Job 配置
 │   │   └── flatfile/            # FlatFile 框架配置
+│   ├── core/
+│   │   └── fileprocess/
+│   │       ├── template/        # Job 构建模板
+│   │       ├── reader/          # HeaderFooterAwareReader
+│   │       ├── function/        # 函数式接口
+│   │       └── model/           # 数据模型
 │   ├── batch/
 │   │   ├── reader/              # 注解驱动的字段映射器
 │   │   ├── processor/           # 数据清洗处理器
-│   │   ├── writer/              # 数据写入器
-│   │   └── validator/           # 首尾行校验器
+│   │   └── writer/              # 数据写入器
 │   ├── domain/
 │   │   ├── annotation/          # @FileColumn 注解
 │   │   ├── entity/              # 实体类
 │   │   └── converter/           # 类型转换器
-│   ├── service/                 # 业务服务层（多数据源 JdbcTemplate）
+│   ├── service/                 # 业务服务层
 │   └── util/                    # 工具类（CSV 注入防护、路径校验）
 ├── src/main/resources/
-│   ├── application.yml          # 配置文件
-│   ├── schema-db1.sql           # db1 表结构
-│   └── schema-db2.sql           # db2 表结构
-└── src/test/java/               # 集成测试（事务隔离验证）
+│   └── application.yml          # 配置文件
+├── docs/                        # 文档目录
+│   ├── 快速开始.md              # 5分钟快速体验指南
+│   ├── 技术框架.md              # 框架架构与设计模式
+│   ├── 多数据源.md              # 多数据源配置与事务隔离
+│   ├── 文件读写.md              # 单次扫描架构设计
+│   └── 测试文档.md              # 测试用例与验证方法
+└── src/test/java/               # 集成测试
 ```
+
+---
+
+## 📖 文档导航
+
+| 文档 | 说明 |
+|------|------|
+| [快速开始.md](docs/快速开始.md) | 5分钟快速体验，环境配置与基础用法 |
+| [技术框架.md](docs/技术框架.md) | 框架架构、设计模式、核心组件 |
+| [多数据源.md](docs/多数据源.md) | 多数据源配置、事务隔离机制 |
+| [文件读写.md](docs/文件读写.md) | 单次扫描架构、HeaderFooterAwareReader |
+| [测试文档.md](docs/测试文档.md) | 测试用例、验证方法、性能基准 |
+
+---
 
 ## 🚀 快速开始
 
@@ -97,19 +141,11 @@ spring:
       password: YourPassword123
 ```
 
-### 3. 初始化数据库表
+### 3. 初始化数据库
 
 ```sql
--- 在 SQL Server 中创建数据库
 CREATE DATABASE BatchWeaverDB;
 CREATE DATABASE DB2_Business;
-
--- 执行表结构脚本
-USE BatchWeaverDB;
--- Spring Batch 元数据表由框架自动创建
-
-USE DB2_Business;
--- 执行 src/main/resources/schema-db2.sql
 ```
 
 ### 4. 运行项目
@@ -119,125 +155,51 @@ mvn clean install
 mvn spring-boot:run
 ```
 
-### 5. 运行测试
+📖 **详细步骤**：参见 [docs/快速开始.md](docs/快速开始.md)
 
-```bash
-mvn test
-```
-
-## 事务隔离关键配置
-
-### BatchInfrastructureConfig.java
-
-```java
-@Bean
-public JobRepository jobRepository(
-    @Qualifier("dataSource1") DataSource dataSource1,
-    @Qualifier("tm1") PlatformTransactionManager tm1) {
-
-    factory.setDataSource(dataSource1);       // ✅ db1
-    factory.setTransactionManager(tm1);       // 绑定 tm1（元数据事务）
-    ...
-}
-```
-
-### DemoJobConfig.java
-
-```java
-@Bean
-public Step importFileStep(
-    JobRepository jobRepository,
-    @Qualifier("tm2") PlatformTransactionManager tm2,
-    ...) {
-
-    return new StepBuilder("importFileStep", jobRepository)
-        .transactionManager(tm2)  // 显式指定业务事务管理器 tm2
-        .<DemoUser, DemoUser>chunk(100, tm2)
-        .reader(reader)
-        .processor(processor)
-        .writer(writer)
-        .build();
-}
-```
-
-### Db2BusinessService.java
-
-```java
-@Transactional(transactionManager = "tm2", propagation = Propagation.REQUIRED)
-public void batchInsertUsers(List<DemoUser> users) {
-    // 业务数据操作（使用 tm2）
-}
-```
-
-## 📊 测试验证
-
-### 事务隔离验证测试
-
-运行 `TransactionIsolationTest.testMetadataCommitWhenBusinessRollback()`：
-
-**验证标准**：
-- ✅ BATCH_JOB_EXECUTION 表有 FAILED 记录（元数据提交）
-- ✅ BATCH_STEP_EXECUTION 表有 FAILED 记录（元数据提交）
-- ✅ DEMO_USER 表为空（业务数据回滚）
-
-**失败场景**：如果业务表有数据残留，说明事务隔离配置错误！
-
-## 📖 使用示例
-
-### 文件格式
-
-```
-H|20261231|DEMO_FILE
-1|John Doe|john@example.com|19900115
-2|Jane Smith|jane@example.com|19850622
-3|Bob Johnson|bob@example.com|19781203
-T|3
-```
-
-### 实体类定义
-
-```java
-@Data
-public class DemoUser {
-    @FileColumn(index = 0, name = "userId")
-    private Integer id;
-
-    @FileColumn(index = 1, trim = true, toUpperCase = true)
-    private String name;
-
-    @FileColumn(index = 2, trim = true, defaultValue = "unknown@example.com")
-    private String email;
-
-    @FileColumn(index = 3, converter = StringToDateConverter.class)
-    private Date birthDate;
-}
-```
+---
 
 ## 🛠 技术栈
 
-- **框架**：Spring Boot 3.5.7 + Spring Batch 5.x
-- **数据库**：SQL Server 2022 + HikariCP
-- **开发语言**：Java 21
-- **构建工具**：Maven 3.8+
+| 组件 | 版本/技术 |
+|------|-----------|
+| 框架 | Spring Boot 3.5.7 + Spring Batch 5.x |
+| 数据库 | SQL Server 2022 + HikariCP |
+| 语言 | Java 21 |
+| 构建工具 | Maven 3.8+ |
+
+---
 
 ## 📋 核心类说明
 
+### 单次扫描架构组件
+
 | 类名 | 职责 |
 |------|------|
-| **BatchInfrastructureConfig** | 核心配置：JobRepository 绑定 tm1，确保元数据事务独立 |
-| **DataSource1-4Config** | 4 个数据源配置，每个数据源独立的连接池和事务管理器 |
-| **AnnotationDrivenFieldSetMapper** | 解析 @FileColumn 注解，自动完成字段映射和数据清洗 |
-| **HeaderValidator/FooterValidator** | 首尾行格式校验和记录总数验证 |
-| **CsvInjectionSanitizer** | CSV 注入防护（转义危险字符） |
-| **FilePathNormalizer** | 路径安全校验（防止路径遍历攻击） |
+| **HeaderFooterAwareReader** | 延迟决策 Reader - 单次扫描 + O(1) 内存 |
+| **FooterLineDetector** | Footer 行检测函数式接口 |
+| **FileImportJobTemplate** | 文件导入 Job 构建模板 |
+
+### 基础设施组件
+
+| 类名 | 职责 |
+|------|------|
+| **BatchInfrastructureConfig** | JobRepository 绑定 tm1 |
+| **DataSource1-4Config** | 4 个数据源配置 |
+
+### 文件处理组件
+
+| 类名 | 职责 |
+|------|------|
+| **AnnotationDrivenFieldSetMapper** | @FileColumn 注解解析 |
+| **HeaderParser/FooterParser** | 头尾行解析 |
+| **HeaderValidator/FooterValidator** | 头尾行校验 |
+
+---
 
 ## 📄 License
 
 MIT License
-
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
 
 ---
 
