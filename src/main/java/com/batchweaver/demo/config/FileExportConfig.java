@@ -1,6 +1,6 @@
 package com.batchweaver.demo.config;
 
-import com.batchweaver.batch.entity.DemoUser;
+import com.batchweaver.demo.shared.entity.DemoUser;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -13,8 +13,6 @@ import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
@@ -24,6 +22,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Job4: 文件导出测试配置
@@ -35,12 +34,6 @@ import java.time.format.DateTimeFormatter;
  */
 @Configuration
 public class FileExportConfig {
-
-    @Value("${batch.weaver.demo.output-path}data/output/")
-    private String outputPath;
-
-    @Value("${batch.weaver.demo.chunk-size:1000}")
-    private int chunkSize;
 
     // =============================================================
     // Format1: yyyyMMdd + 纯数字 Footer
@@ -54,24 +47,24 @@ public class FileExportConfig {
     @Bean
     public Job format1ExportJob(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
-            @Qualifier("dataSource2") DataSource dataSource2) throws Exception {
+            PlatformTransactionManager tm2,
+            DataSource dataSource2) throws Exception {
 
         // Reader
         JdbcPagingItemReader<DemoUser> reader = new JdbcPagingItemReader<>();
         reader.setDataSource(dataSource2);
-        reader.setPageSize(chunkSize);
+        reader.setPageSize(100);
         reader.setRowMapper(new BeanPropertyRowMapper<>(DemoUser.class));
         reader.setQueryProvider(format1QueryProvider(dataSource2));
         reader.setName("format1ExportReader");
         reader.afterPropertiesSet();  // 初始化 reader
 
         // Writer with Header and Footer
-        java.util.concurrent.atomic.AtomicLong writeCount = new java.util.concurrent.atomic.AtomicLong(0);
+        AtomicLong writeCount = new AtomicLong(0);
 
         FlatFileItemWriter<DemoUser> writer = new FlatFileItemWriterBuilder<DemoUser>()
                 .name("format1ExportWriter")
-                .resource(new FileSystemResource(outputPath + "format1_export.txt"))
+                .resource(new FileSystemResource("data/output/format1_export.txt"))
                 .delimited()
                 .delimiter(",")
                 .names("id", "name", "email", "birthDate")
@@ -93,7 +86,7 @@ public class FileExportConfig {
 
         // Step
         Step step = new StepBuilder("format1ExportStep", jobRepository)
-                .<DemoUser, DemoUser>chunk(chunkSize, tm2)
+                .<DemoUser, DemoUser>chunk(100, tm2)
                 .reader(reader)
                 .writer(countingWriter)
                 .build();
@@ -108,7 +101,7 @@ public class FileExportConfig {
      * Format1 查询提供器
      */
     @Bean
-    public PagingQueryProvider format1QueryProvider(@Qualifier("dataSource2") DataSource dataSource2) throws Exception {
+    public PagingQueryProvider format1QueryProvider(DataSource dataSource2) throws Exception {
         SqlPagingQueryProviderFactoryBean factory = new SqlPagingQueryProviderFactoryBean();
         factory.setDataSource(dataSource2);
         factory.setSelectClause("id, name, email, birth_date");
@@ -129,13 +122,13 @@ public class FileExportConfig {
     @Bean
     public Job format2ExportJob(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
-            @Qualifier("dataSource2") DataSource dataSource2) throws Exception {
+            PlatformTransactionManager tm2,
+            DataSource dataSource2) throws Exception {
 
         // Reader
         JdbcPagingItemReader<DemoUser> reader = new JdbcPagingItemReader<>();
         reader.setDataSource(dataSource2);
-        reader.setPageSize(chunkSize);
+        reader.setPageSize(100);
         reader.setRowMapper(new BeanPropertyRowMapper<>(DemoUser.class));
         reader.setQueryProvider(format2QueryProvider(dataSource2));
         reader.setName("format2ExportReader");
@@ -146,7 +139,7 @@ public class FileExportConfig {
 
         FlatFileItemWriter<DemoUser> writer = new FlatFileItemWriterBuilder<DemoUser>()
                 .name("format2ExportWriter")
-                .resource(new FileSystemResource(outputPath + "format2_export.txt"))
+                .resource(new FileSystemResource("data/output/format2_export.txt"))
                 .delimited()
                 .delimiter(",")
                 .names("id", "name", "email", "birthDate")
@@ -168,7 +161,7 @@ public class FileExportConfig {
 
         // Step
         Step step = new StepBuilder("format2ExportStep", jobRepository)
-                .<DemoUser, DemoUser>chunk(chunkSize, tm2)
+                .<DemoUser, DemoUser>chunk(100, tm2)
                 .reader(reader)
                 .writer(countingWriter)
                 .build();
@@ -183,7 +176,7 @@ public class FileExportConfig {
      * Format2 查询提供器
      */
     @Bean
-    public PagingQueryProvider format2QueryProvider(@Qualifier("dataSource2") DataSource dataSource2) throws Exception {
+    public PagingQueryProvider format2QueryProvider(DataSource dataSource2) throws Exception {
         SqlPagingQueryProviderFactoryBean factory = new SqlPagingQueryProviderFactoryBean();
         factory.setDataSource(dataSource2);
         factory.setSelectClause("id, name, email, birth_date");

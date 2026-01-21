@@ -1,30 +1,32 @@
 package com.batchweaver.demo.config;
 
-import com.batchweaver.batch.entity.DemoUser;
-import com.batchweaver.batch.service.Db2BusinessService;
-import com.batchweaver.batch.service.Db3BusinessService;
-import com.batchweaver.batch.service.Db4BusinessService;
+import com.batchweaver.demo.shared.entity.DemoUser;
+import com.batchweaver.demo.shared.service.Db2BusinessService;
+import com.batchweaver.demo.shared.service.Db3BusinessService;
+import com.batchweaver.demo.shared.service.Db4BusinessService;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
 import com.batchweaver.demo.shared.service.MockMailSender;
+import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.job.builder.JobBuilder;
-import org.springframework.batch.core.launch.support.RunIdIncrementer;
-import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
-import org.springframework.batch.item.file.FlatFileItemReader;
-import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.FlatFileItemWriter;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
@@ -34,6 +36,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 import javax.sql.DataSource;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 
 /**
  * Job5: 复杂工作流测试配置
@@ -51,19 +55,6 @@ import java.time.format.DateTimeFormatter;
  */
 @Configuration
 public class ComplexWorkflowConfig {
-
-    @Value("${batch.weaver.demo.input-path}data/input/")
-    private String inputPath;
-
-    @Value("${batch.weaver.demo.output-path}data/output/")
-    private String outputPath;
-
-    @Value("${batch.weaver.demo.files.workflow:workflow_users.txt}")
-    private String workflowFileName;
-
-    @Value("${batch.weaver.demo.chunk-size:100}")
-    private int chunkSize;
-
     /**
      * 复杂工作流 Job
      */
@@ -98,48 +89,26 @@ public class ComplexWorkflowConfig {
     // =============================================================
 
     /**
-     * Step1: 导入数据（复用 format1ImportJob 的 Step 逻辑）
+     * Step1: 读取 data/input/workflow_users.txt -> DB2
      */
     @Bean
     public Step step1Import(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
-            @Qualifier("dataSource2") DataSource dataSource2,
-            Db2BusinessService db2BusinessService) {
-
-        // Reader
-        FlatFileItemReader<DemoUserInput> reader = new FlatFileItemReaderBuilder<DemoUserInput>()
-                .name("workflowImportReader")
-                .resource(new FileSystemResource(inputPath + workflowFileName))
-                .linesToSkip(1)
-                .delimited()
-                .delimiter(",")
-                .names("name", "age", "email", "birthDate")
-                .targetType(DemoUserInput.class)
-                .build();
-
-        // Processor
-        ItemProcessor<DemoUserInput, DemoUser> processor = input -> {
-            DemoUser user = new DemoUser();
-            user.setName(input.getName());
-            user.setEmail(input.getEmail());
-            user.setBirthDate(input.getBirthDate());
-            return user;
-        };
-
-        // Writer
-        ItemWriter<DemoUser> writer = items -> db2BusinessService.batchInsertUsers(new java.util.ArrayList<>(items.getItems()));
-
+            ItemReader<DemoUserInput> workflowFileReader,
+            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
+            ItemWriter<DemoUser> db2DemoUserWriter,
+            PlatformTransactionManager tm2
+    ) {
         return new StepBuilder("step1Import", jobRepository)
-                .<DemoUserInput, DemoUser>chunk(chunkSize, tm2)
-                .reader(reader)
-                .processor(processor)
-                .writer(writer)
+                .<DemoUserInput, DemoUser>chunk(100, tm2)
+                .reader(workflowFileReader)
+                .processor(demoUserInputToDemoUserNoIdProcessor)
+                .writer(db2DemoUserWriter)
                 .faultTolerant()
                 .skipLimit(100)
-                .skip(org.springframework.batch.item.file.FlatFileParseException.class)
-                .skip(java.lang.NumberFormatException.class)
-                .skip(java.time.format.DateTimeParseException.class)
+                .skip(FlatFileParseException.class)
+                .skip(NumberFormatException.class)
+                .skip(DateTimeParseException.class)
                 .build();
     }
 
@@ -148,28 +117,25 @@ public class ComplexWorkflowConfig {
     // =============================================================
 
     /**
-     * Step2: 同步数据到 DB3
+     * Step2: DB2->同步数据到 DB3
      * <p>
      * 使用 tm3 事务管理器
      */
     @Bean
     public Step step2SyncToDb3(
             JobRepository jobRepository,
-            @Qualifier("tm3") PlatformTransactionManager tm3,
+            PlatformTransactionManager tm3,
             Db2BusinessService db2BusinessService,
             Db3BusinessService db3BusinessService) {
 
         return new StepBuilder("step2SyncToDb3", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     // 从 DB2 读取数据
-                    java.util.List<DemoUser> users = db2BusinessService.getAllUsers();
-
+                    List<DemoUser> users = db2BusinessService.getAllUsers();
                     // 同步到 DB3（使用 tm3）
                     db3BusinessService.batchInsertUsers(users);
-
                     System.out.println("[STEP2] Synced " + users.size() + " users from DB2 to DB3");
-
-                    return org.springframework.batch.repeat.RepeatStatus.FINISHED;
+                    return RepeatStatus.FINISHED;
                 }, tm3)
                 .build();
     }
@@ -179,7 +145,7 @@ public class ComplexWorkflowConfig {
     // =============================================================
 
     /**
-     * Step3: 同步数据到 DB4
+     * Step3: DB2 同步数据到 DB4
      * <p>
      * 使用 tm4 事务管理器
      */
@@ -193,14 +159,11 @@ public class ComplexWorkflowConfig {
         return new StepBuilder("step3SyncToDb4", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     // 从 DB2 读取数据
-                    java.util.List<DemoUser> users = db2BusinessService.getAllUsers();
-
+                    List<DemoUser> users = db2BusinessService.getAllUsers();
                     // 同步到 DB4（使用 tm4）
                     db4BusinessService.batchInsertUsers(users);
-
                     System.out.println("[STEP3] Synced " + users.size() + " users from DB2 to DB4");
-
-                    return org.springframework.batch.repeat.RepeatStatus.FINISHED;
+                    return RepeatStatus.FINISHED;
                 }, tm4)
                 .build();
     }
@@ -216,24 +179,24 @@ public class ComplexWorkflowConfig {
     public JobExecutionDecider decisionStep4() {
         return (jobExecution, stepExecution) -> {
             // 从 jobExecution 中获取 step1Import 的执行信息
-            org.springframework.batch.core.StepExecution step1Execution = jobExecution.getStepExecutions().stream()
+            StepExecution step1Execution = jobExecution.getStepExecutions().stream()
                     .filter(se -> "step1Import".equals(se.getStepName()))
                     .findFirst()
                     .orElse(null);
 
             if (step1Execution == null) {
-                return new org.springframework.batch.core.job.flow.FlowExecutionStatus("FAILED");
+                return new FlowExecutionStatus("FAILED");
             }
 
             long skipCount = step1Execution.getSkipCount();
 
             // 检查状态
-            if (step1Execution.getStatus() == org.springframework.batch.core.BatchStatus.FAILED) {
-                return new org.springframework.batch.core.job.flow.FlowExecutionStatus("FAILED");
+            if (step1Execution.getStatus() == BatchStatus.FAILED) {
+                return new FlowExecutionStatus("FAILED");
             } else if (skipCount > 0) {
-                return new org.springframework.batch.core.job.flow.FlowExecutionStatus("COMPLETED_WITH_SKIPS");
+                return new FlowExecutionStatus("COMPLETED_WITH_SKIPS");
             } else {
-                return new org.springframework.batch.core.job.flow.FlowExecutionStatus("COMPLETED");
+                return new FlowExecutionStatus("COMPLETED");
             }
         };
     }
@@ -248,7 +211,7 @@ public class ComplexWorkflowConfig {
     @Bean
     public Step step5FailureMail(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
+            PlatformTransactionManager tm2,
             MockMailSender mockMailSender) {
 
         return new StepBuilder("step5FailureMail", jobRepository)
@@ -257,7 +220,7 @@ public class ComplexWorkflowConfig {
                             "Job5 Failed - Complex Workflow",
                             "The complex workflow job has failed. Please check the logs for details."
                     );
-                    return org.springframework.batch.repeat.RepeatStatus.FINISHED;
+                    return RepeatStatus.FINISHED;
                 }, tm2)
                 .build();
     }
@@ -272,7 +235,7 @@ public class ComplexWorkflowConfig {
     @Bean
     public Step step6SuccessMail(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
+            PlatformTransactionManager tm2,
             MockMailSender mockMailSender) {
 
         return new StepBuilder("step6SuccessMail", jobRepository)
@@ -291,7 +254,7 @@ public class ComplexWorkflowConfig {
                                 "The complex workflow job completed successfully."
                         );
                     }
-                    return org.springframework.batch.repeat.RepeatStatus.FINISHED;
+                    return RepeatStatus.FINISHED;
                 }, tm2)
                 .build();
     }
@@ -306,14 +269,14 @@ public class ComplexWorkflowConfig {
     @Bean
     public Step step7Export(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
-            @Qualifier("dataSource2") DataSource dataSource2,
+            PlatformTransactionManager tm2,
+            DataSource dataSource2,
             MockMailSender mockMailSender) throws Exception {
 
         // Reader
         JdbcPagingItemReader<DemoUser> reader = new JdbcPagingItemReader<>();
         reader.setDataSource(dataSource2);
-        reader.setPageSize(chunkSize);
+        reader.setPageSize(100);
         reader.setRowMapper(new BeanPropertyRowMapper<>(DemoUser.class));
         reader.setQueryProvider(resultExportQueryProvider(dataSource2));
         reader.setName("resultExportReader");
@@ -321,7 +284,7 @@ public class ComplexWorkflowConfig {
         // Writer
         FlatFileItemWriter<DemoUser> writer = new FlatFileItemWriterBuilder<DemoUser>()
                 .name("resultExportWriter")
-                .resource(new FileSystemResource(outputPath + "result_export.txt"))
+                .resource(new FileSystemResource("data/output/result_export.txt"))
                 .delimited()
                 .delimiter(",")
                 .names("id", "name", "email", "birthDate")
@@ -331,7 +294,7 @@ public class ComplexWorkflowConfig {
                 .build();
 
         return new StepBuilder("step7Export", jobRepository)
-                .<DemoUser, DemoUser>chunk(chunkSize, tm2)
+                .<DemoUser, DemoUser>chunk(100, tm2)
                 .reader(reader)
                 .writer(writer)
                 .listener(new ExportCompletionListener(mockMailSender))
@@ -342,7 +305,7 @@ public class ComplexWorkflowConfig {
      * 结果导出查询提供器
      */
     @Bean
-    public PagingQueryProvider resultExportQueryProvider(@Qualifier("dataSource2") DataSource dataSource2) throws Exception {
+    public PagingQueryProvider resultExportQueryProvider(DataSource dataSource2) throws Exception {
         SqlPagingQueryProviderFactoryBean factory = new SqlPagingQueryProviderFactoryBean();
         factory.setDataSource(dataSource2);
         factory.setSelectClause("id, name, email, birth_date");

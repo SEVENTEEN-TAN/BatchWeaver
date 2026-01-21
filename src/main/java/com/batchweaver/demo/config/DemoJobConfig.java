@@ -1,6 +1,6 @@
-package com.batchweaver.batch.config;
+package com.batchweaver.demo.config;
 
-import com.batchweaver.batch.entity.DemoUser;
+import com.batchweaver.demo.shared.entity.DemoUser;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;

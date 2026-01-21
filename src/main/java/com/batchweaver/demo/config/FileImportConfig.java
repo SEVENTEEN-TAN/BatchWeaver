@@ -6,8 +6,7 @@ import com.batchweaver.core.fileprocess.function.HeaderParser;
 import com.batchweaver.core.fileprocess.function.HeaderValidator;
 import com.batchweaver.core.fileprocess.model.FooterInfo;
 import com.batchweaver.core.fileprocess.model.HeaderInfo;
-import com.batchweaver.batch.entity.DemoUser;
-import com.batchweaver.batch.service.Db2BusinessService;
+import com.batchweaver.demo.shared.entity.DemoUser;
 import com.batchweaver.core.fileprocess.template.FileImportJobTemplate;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
 import org.springframework.batch.core.Job;
@@ -23,8 +22,6 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
@@ -46,21 +43,6 @@ import java.time.format.DateTimeFormatter;
 @Configuration
 public class FileImportConfig {
 
-    @Value("${batch.weaver.demo.input-path}data/input/")
-    private String inputPath;
-
-    @Value("${batch.weaver.demo.chunk-size:1000}")
-    private int chunkSize;
-
-    @Value("${batch.weaver.demo.files.format1:format1_users.txt}")
-    private String format1FileName;
-
-    @Value("${batch.weaver.demo.files.format2:format2_users.txt}")
-    private String format2FileName;
-
-    @Value("${batch.weaver.demo.files.format3:format3_users.txt}")
-    private String format3FileName;
-
     // =============================================================
     // Format1: yyyyMMdd + 纯数字 Footer
     // =============================================================
@@ -73,10 +55,11 @@ public class FileImportConfig {
     @Bean
     public Job format1ImportJob(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
-            Db2BusinessService db2BusinessService) {
+            PlatformTransactionManager tm2,
+            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
+            ItemWriter<DemoUser> db2DemoUserWriter) {
 
-        Resource resource = new FileSystemResource(inputPath + format1FileName);
+        Resource resource = new FileSystemResource("data/input/format1_users.txt");
 
         // Header 解析：yyyyMMdd
         HeaderParser headerParser = line -> {
@@ -128,12 +111,6 @@ public class FileImportConfig {
                 fieldSetMapper
         );
 
-        // Processor
-        ItemProcessor<DemoUserInput, DemoUser> processor = new DemoUserProcessor();
-
-        // Writer
-        ItemWriter<DemoUser> writer = items -> db2BusinessService.batchInsertUsers(new java.util.ArrayList<>(items.getItems()));
-
         // 构建 Job 定义
         FileImportJobTemplate.FileImportJobDefinition<DemoUserInput, DemoUser> definition =
                 FileImportJobTemplate.FileImportJobDefinition.<DemoUserInput, DemoUser>builder()
@@ -142,9 +119,9 @@ public class FileImportConfig {
                         .jobRepository(jobRepository)
                         .transactionManager(tm2)
                         .reader(reader)
-                        .processor(processor)
-                        .writer(writer)
-                        .chunkSize(chunkSize)
+                        .processor(demoUserInputToDemoUserNoIdProcessor)
+                        .writer(db2DemoUserWriter)
+                        .chunkSize(100)
                         .skipLimit(100)
                         .retryLimit(3)
                         .build();
@@ -164,10 +141,11 @@ public class FileImportConfig {
     @Bean
     public Job format2ImportJob(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
-            Db2BusinessService db2BusinessService) {
+            PlatformTransactionManager tm2,
+            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserCopyIdProcessor,
+            ItemWriter<DemoUser> db2DemoUserWriter) {
 
-        Resource resource = new FileSystemResource(inputPath + format2FileName);
+        Resource resource = new FileSystemResource("data/input/format2_users.txt");
 
         // Header 解析：MMddyyyy
         HeaderParser headerParser = line -> {
@@ -211,12 +189,6 @@ public class FileImportConfig {
                 fieldSetMapper
         );
 
-        // Processor
-        ItemProcessor<DemoUserInput, DemoUser> processor = new DemoUserProcessor();
-
-        // Writer
-        ItemWriter<DemoUser> writer = items -> db2BusinessService.batchInsertUsers(new java.util.ArrayList<>(items.getItems()));
-
         // 构建 Job 定义
         FileImportJobTemplate.FileImportJobDefinition<DemoUserInput, DemoUser> definition =
                 FileImportJobTemplate.FileImportJobDefinition.<DemoUserInput, DemoUser>builder()
@@ -225,9 +197,9 @@ public class FileImportConfig {
                         .jobRepository(jobRepository)
                         .transactionManager(tm2)
                         .reader(reader)
-                        .processor(processor)
-                        .writer(writer)
-                        .chunkSize(chunkSize)
+                        .processor(demoUserInputToDemoUserCopyIdProcessor)
+                        .writer(db2DemoUserWriter)
+                        .chunkSize(100)
                         .skipLimit(100)
                         .retryLimit(3)
                         .build();
@@ -247,10 +219,11 @@ public class FileImportConfig {
     @Bean
     public Job format3ImportJob(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
-            Db2BusinessService db2BusinessService) {
+            PlatformTransactionManager tm2,
+            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserCopyIdProcessor,
+            ItemWriter<DemoUser> db2DemoUserWriter) {
 
-        Resource resource = new FileSystemResource(inputPath + format3FileName);
+        Resource resource = new FileSystemResource("data/input/format3_users.txt");
 
         // Reader
         FlatFileItemReader<DemoUserInput> reader = new FlatFileItemReaderBuilder<DemoUserInput>()
@@ -262,18 +235,12 @@ public class FileImportConfig {
                 .targetType(DemoUserInput.class)
                 .build();
 
-        // Processor
-        ItemProcessor<DemoUserInput, DemoUser> processor = new DemoUserProcessor();
-
-        // Writer
-        ItemWriter<DemoUser> writer = items -> db2BusinessService.batchInsertUsers(new java.util.ArrayList<>(items.getItems()));
-
         // 构建 Step
         Step step = new StepBuilder("format3ImportStep", jobRepository)
-                .<DemoUserInput, DemoUser>chunk(chunkSize, tm2)
+                .<DemoUserInput, DemoUser>chunk(100, tm2)
                 .reader(reader)
-                .processor(processor)
-                .writer(writer)
+                .processor(demoUserInputToDemoUserCopyIdProcessor)
+                .writer(db2DemoUserWriter)
                 .faultTolerant()
                 .skipLimit(100)
                 .retryLimit(3)
@@ -286,19 +253,4 @@ public class FileImportConfig {
                 .build();
     }
 
-    /**
-     * 通用 Processor：DemoUserInput → DemoUser
-     */
-    public static class DemoUserProcessor implements ItemProcessor<DemoUserInput, DemoUser> {
-        @Override
-        public DemoUser process(DemoUserInput input) {
-            DemoUser user = new DemoUser();
-            user.setId(input.getId());
-            user.setName(input.getName());
-            user.setEmail(input.getEmail());
-            user.setBirthDate(input.getBirthDate());
-            // age 字段被忽略，不写入 DB
-            return user;
-        }
-    }
 }

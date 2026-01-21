@@ -1,13 +1,6 @@
 package com.batchweaver.demo.config;
 
-import com.batchweaver.batch.entity.DemoUser;
-import com.batchweaver.batch.service.Db2BusinessService;
-import com.batchweaver.core.fileprocess.function.FooterParser;
-import com.batchweaver.core.fileprocess.function.FooterValidator;
-import com.batchweaver.core.fileprocess.function.HeaderParser;
-import com.batchweaver.core.fileprocess.model.FooterInfo;
-import com.batchweaver.core.fileprocess.model.HeaderInfo;
-import com.batchweaver.core.fileprocess.reader.HeaderFooterAwareReader;
+import com.batchweaver.demo.shared.entity.DemoUser;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -20,18 +13,14 @@ import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
-import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.batch.item.file.FlatFileParseException;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 /**
  * Job1: 条件流程测试配置
@@ -43,15 +32,6 @@ import java.time.format.DateTimeFormatter;
  */
 @Configuration
 public class ConditionalFlowConfig {
-
-    @Value("${batch.weaver.demo.input-path}data/input/")
-    private String inputPath;
-
-    @Value("${batch.weaver.demo.files.demo}")
-    private String demoFileName;
-
-    @Value("${batch.weaver.demo.chunk-size:100}")
-    private int chunkSize;
 
     /**
      * 条件流程 Job
@@ -84,21 +64,21 @@ public class ConditionalFlowConfig {
     @Bean
     public Step conditionalImportStep(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2,
-            ItemReader<DemoUserInput> reader,
-            ItemProcessor<DemoUserInput, DemoUser> processor,
-            ItemWriter<DemoUser> writer) {
+            PlatformTransactionManager tm2,
+            ItemReader<DemoUserInput> demoUsersFileReader,
+            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserCopyIdProcessor,
+            ItemWriter<DemoUser> db2DemoUserWriter) {
 
         return new StepBuilder("conditionalImportStep", jobRepository)
-                .<DemoUserInput, DemoUser>chunk(chunkSize, tm2)
-                .reader(reader)
-                .processor(processor)
-                .writer(writer)
+                .<DemoUserInput, DemoUser>chunk(100, tm2)
+                .reader(demoUsersFileReader)
+                .processor(demoUserInputToDemoUserCopyIdProcessor)
+                .writer(db2DemoUserWriter)
                 .faultTolerant()
                 .skipLimit(10)
-                .skip(org.springframework.batch.item.file.FlatFileParseException.class)
-                .skip(java.lang.NumberFormatException.class)
-                .skip(java.time.format.DateTimeParseException.class)
+                .skip(FlatFileParseException.class)
+                .skip(NumberFormatException.class)
+                .skip(DateTimeParseException.class)
                 .build();
     }
 
@@ -132,14 +112,14 @@ public class ConditionalFlowConfig {
     @Bean
     public Step successStep(
             JobRepository jobRepository,
-            @Qualifier("tm2") PlatformTransactionManager tm2) {
+            PlatformTransactionManager tm2) {
 
         return new StepBuilder("successStep", jobRepository)
                 .tasklet((contribution, chunkContext) -> {
                     System.out.println("========================================");
                     System.out.println("[SUCCESS BRANCH] Job executed successfully");
                     System.out.println("========================================");
-                    return org.springframework.batch.repeat.RepeatStatus.FINISHED;
+                    return RepeatStatus.FINISHED;
                 }, tm2)
                 .build();
     }
@@ -157,89 +137,9 @@ public class ConditionalFlowConfig {
                     System.out.println("========================================");
                     System.out.println("[FAILURE BRANCH] Job execution failed");
                     System.out.println("========================================");
-                    return org.springframework.batch.repeat.RepeatStatus.FINISHED;
+                    return RepeatStatus.FINISHED;
                 }, tm2)
                 .build();
     }
 
-    /**
-     * Reader：读取 demo_users.txt
-     * <p>
-     * 格式：H|yyyyMMdd|type + 数据行 + T|count
-     */
-    @Bean
-    public HeaderFooterAwareReader<DemoUserInput> conditionalDemoReader() {
-        Resource resource = new FileSystemResource(inputPath + demoFileName);
-
-        // Header 解析：H|yyyyMMdd|type
-        HeaderParser headerParser = line -> {
-            String[] parts = line.split("\\|");
-            if (parts.length >= 2) {
-                LocalDate date = LocalDate.parse(parts[1].trim(), DateTimeFormatter.ofPattern("yyyyMMdd"));
-                return new HeaderInfo(date);
-            }
-            throw new IllegalArgumentException("Invalid header format: " + line);
-        };
-
-        // Footer 解析：T|count
-        FooterParser footerParser = line -> {
-            String[] parts = line.split("\\|");
-            if (parts.length >= 2) {
-                long count = Long.parseLong(parts[1].trim());
-                return new FooterInfo(count);
-            }
-            throw new IllegalArgumentException("Invalid footer format: " + line);
-        };
-
-        // Footer 校验：数量必须匹配
-        FooterValidator footerValidator = (footer, actual) -> {
-            if (footer.getCount() != actual) {
-                throw new IllegalStateException("Footer count mismatch: expected=" + footer.getCount() + ", actual=" + actual);
-            }
-        };
-
-        // LineTokenizer
-        DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
-        lineTokenizer.setDelimiter("|");
-        lineTokenizer.setNames("id", "name", "age", "email", "birthDate");
-
-        // FieldSetMapper
-        BeanWrapperFieldSetMapper<DemoUserInput> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(DemoUserInput.class);
-
-        // 使用 HeaderFooterAwareReader
-        return new HeaderFooterAwareReader<>(
-                resource,
-                headerParser,
-                null,  // 没有 headerValidator
-                footerParser,
-                footerValidator,
-                lineTokenizer,
-                fieldSetMapper
-        );
-    }
-
-    /**
-     * Processor：DemoUserInput → DemoUser（忽略 age 字段）
-     */
-    @Bean("conditionalFlowDemoUserProcessor")
-    public ItemProcessor<DemoUserInput, DemoUser> conditionalFlowDemoUserProcessor() {
-        return input -> {
-            DemoUser user = new DemoUser();
-            user.setId(input.getId());
-            user.setName(input.getName());
-            user.setEmail(input.getEmail());
-            user.setBirthDate(input.getBirthDate());
-            // age 字段被忽略
-            return user;
-        };
-    }
-
-    /**
-     * Writer：写入 DB2
-     */
-    @Bean("conditionalFlowDemoUserWriter")
-    public ItemWriter<DemoUser> conditionalFlowDemoUserWriter(Db2BusinessService db2BusinessService) {
-        return items -> db2BusinessService.batchInsertUsers(new java.util.ArrayList<>(items.getItems()));
-    }
 }

@@ -1,6 +1,6 @@
-package com.batchweaver.batch.service;
+package com.batchweaver.demo.shared.service;
 
-import com.batchweaver.batch.entity.DemoUser;
+import com.batchweaver.demo.shared.entity.DemoUser;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -22,8 +22,7 @@ public class Db2BusinessService {
 
     private final NamedParameterJdbcTemplate namedJdbcTemplate2;
 
-    public Db2BusinessService(@Qualifier("namedJdbcTemplate2")
-                              NamedParameterJdbcTemplate namedJdbcTemplate2) {
+    public Db2BusinessService(NamedParameterJdbcTemplate namedJdbcTemplate2) {
         this.namedJdbcTemplate2 = namedJdbcTemplate2;
     }
 
