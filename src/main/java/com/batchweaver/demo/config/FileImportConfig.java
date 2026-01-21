@@ -19,6 +19,7 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemWriter;
 import com.batchweaver.core.fileprocess.reader.HeaderFooterAwareReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
@@ -30,6 +31,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 /**
  * Job3: 文件导入测试配置
@@ -243,7 +245,9 @@ public class FileImportConfig {
                 .writer(db2DemoUserWriter)
                 .faultTolerant()
                 .skipLimit(100)
-                .retryLimit(3)
+                .skip(FlatFileParseException.class)
+                .skip(NumberFormatException.class)
+                .skip(DateTimeParseException.class)
                 .build();
 
         // 构建 Job

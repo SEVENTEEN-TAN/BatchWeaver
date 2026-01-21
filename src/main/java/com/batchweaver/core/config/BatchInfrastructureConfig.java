@@ -1,5 +1,6 @@
 package com.batchweaver.core.config;
 
+import org.springframework.batch.core.configuration.support.MapJobRegistry;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
 import org.springframework.batch.core.launch.JobLauncher;
@@ -44,7 +45,7 @@ public class BatchInfrastructureConfig {
      */
     @Bean
     public JobRepository jobRepository(@Qualifier("dataSource1") DataSource dataSource1,
-                                       @Qualifier("tm1Meta") PlatformTransactionManager tm1Meta) throws Exception {
+                                       PlatformTransactionManager tm1Meta) throws Exception {
         JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
         factory.setDataSource(dataSource1);       // ✅ 使用 db1 数据源
         factory.setTransactionManager(tm1Meta);   // 绑定 tm1Meta，确保元数据事务独立
@@ -70,11 +71,12 @@ public class BatchInfrastructureConfig {
      * JobExplorer 配置（用于查询批处理执行历史）
      */
     @Bean
-    public JobExplorer jobExplorer(@Qualifier("dataSource1") DataSource dataSource1) throws Exception {
+    public JobExplorer jobExplorer(@Qualifier("dataSource1") DataSource dataSource1,
+                                   PlatformTransactionManager tm1Meta) throws Exception {
         JobExplorerFactoryBean factory = new JobExplorerFactoryBean();
         factory.setDataSource(dataSource1);
+        factory.setTransactionManager(tm1Meta);  // Spring Batch 5.x 必需设置 TransactionManager
         factory.setTablePrefix("BATCH_");
-        // Spring Batch 5.x 会自动检测数据库类型，无需手动设置
         factory.afterPropertiesSet();
         return factory.getObject();
     }
@@ -85,7 +87,7 @@ public class BatchInfrastructureConfig {
      */
     @Bean
     public JobRegistry jobRegistry() {
-        return new org.springframework.batch.core.configuration.support.MapJobRegistry();
+        return new MapJobRegistry();
     }
 
     /**

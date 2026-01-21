@@ -8,6 +8,8 @@ import com.batchweaver.core.fileprocess.model.FooterInfo;
 import com.batchweaver.core.fileprocess.model.HeaderInfo;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.annotation.BeforeStep;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemStream;
@@ -108,6 +110,11 @@ public class HeaderFooterAwareReader<T> implements ItemReader<T>, ItemStream {
      * 原始BufferedReader（用于读取文件）
      */
     private BufferedReader reader;
+
+    /**
+     * StepExecution（用于获取 JobExecutionContext）
+     */
+    private StepExecution stepExecution;
 
     // ============================================================================
     // 解析结果缓存
@@ -263,6 +270,14 @@ public class HeaderFooterAwareReader<T> implements ItemReader<T>, ItemStream {
                 try {
                     footerInfo = footerParser.parse(lineToProcess);
                     log.info("Footer parsed: {} (actual count: {})", footerInfo, actualRecordCount);
+
+                    // 立即将 FooterInfo 存储到 Job ExecutionContext
+                    if (stepExecution != null) {
+                        ExecutionContext jobContext = stepExecution.getJobExecution().getExecutionContext();
+                        jobContext.put(FOOTER_INFO_KEY, footerInfo);
+                        jobContext.putLong(DECLARED_RECORD_COUNT_KEY, footerInfo.getCount());
+                        log.debug("FooterInfo stored to JobExecutionContext: count={}", footerInfo.getCount());
+                    }
                 } catch (Exception e) {
                     throw new ItemStreamException("Footer parsing failed: " + e.getMessage(), e);
                 }
@@ -283,6 +298,21 @@ public class HeaderFooterAwareReader<T> implements ItemReader<T>, ItemStream {
             actualRecordCount++;
             return processLine(lineToProcess);
         }
+    }
+
+    // ============================================================================
+    // Step 回调
+    // ============================================================================
+
+    /**
+     * Step 开始前回调，保存 StepExecution 引用
+     * <p>
+     * Spring Batch 会自动调用此方法（如果 Reader 被注册为 Listener）
+     */
+    @BeforeStep
+    public void beforeStep(StepExecution stepExecution) {
+        this.stepExecution = stepExecution;
+        log.debug("StepExecution captured for JobExecutionContext access");
     }
 
     // ============================================================================

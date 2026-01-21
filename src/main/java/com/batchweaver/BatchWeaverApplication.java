@@ -2,6 +2,7 @@ package com.batchweaver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration;
 
 /**
  * Spring Batch 5.x Multi-Datasource System
@@ -28,7 +29,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *   <li>命令行/容器环境：不设置开关时不会注入默认参数，完全使用外部传入的 args</li>
  * </ul>
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = BatchAutoConfiguration.class)
 public class BatchWeaverApplication {
 
     public static void main(String[] args) {
@@ -37,9 +38,9 @@ public class BatchWeaverApplication {
             forcedIdeDebug = parseBooleanNullable(System.getenv("BATCHWEAVER_IDE_DEBUG"));
         }
         boolean ideDebug = forcedIdeDebug != null ? forcedIdeDebug : isIdeEnvironment();
-        String jobName = "demoJob";
+        String jobName = "conditionalFlowJob";
         String jobid = "";
-        String str = "debug";
+        String str = "";
 
         String[] effectiveArgs = args;
         if (ideDebug) {

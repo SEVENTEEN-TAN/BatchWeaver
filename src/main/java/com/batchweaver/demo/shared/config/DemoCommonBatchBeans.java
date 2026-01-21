@@ -3,16 +3,22 @@ package com.batchweaver.demo.shared.config;
 import com.batchweaver.core.fileprocess.function.FooterParser;
 import com.batchweaver.core.fileprocess.function.FooterValidator;
 import com.batchweaver.core.fileprocess.function.HeaderParser;
+import com.batchweaver.core.fileprocess.function.HeaderValidator;
+import com.batchweaver.core.fileprocess.function.PostImportValidator;
+import com.batchweaver.core.fileprocess.listener.FooterValidationListener;
 import com.batchweaver.core.fileprocess.model.FooterInfo;
 import com.batchweaver.core.fileprocess.model.HeaderInfo;
 import com.batchweaver.core.fileprocess.reader.FooterLineDetector;
 import com.batchweaver.core.fileprocess.reader.HeaderFooterAwareReader;
+import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
 import com.batchweaver.demo.shared.entity.DemoUser;
 import com.batchweaver.demo.shared.service.Db2BusinessService;
 import com.batchweaver.demo.shared.service.Db3BusinessService;
 import com.batchweaver.demo.shared.service.Db4BusinessService;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
 import org.springframework.batch.core.ChunkListener;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.item.ItemProcessor;
@@ -50,7 +56,7 @@ public class DemoCommonBatchBeans {
         };
 
         // Header 校验器
-        com.batchweaver.core.fileprocess.function.HeaderValidator headerValidator = header -> {
+        HeaderValidator headerValidator = header -> {
             LocalDate today = LocalDate.now();
             if (!header.getDate().equals(today)) {
                 System.out.println("[WARN] Large file header date mismatch: expected=" + today + ", actual=" + header.getDate());
@@ -120,12 +126,12 @@ public class DemoCommonBatchBeans {
     public StepExecutionListener StepExecutionListenerImpl() {
         return new StepExecutionListener() {
             @Override
-            public void beforeStep(org.springframework.batch.core.StepExecution stepExecution) {
+            public void beforeStep(StepExecution stepExecution) {
                 System.out.println("[CHUNK] Step started");
             }
 
             @Override
-            public org.springframework.batch.core.ExitStatus afterStep(org.springframework.batch.core.StepExecution stepExecution) {
+            public ExitStatus afterStep(StepExecution stepExecution) {
                 System.out.println("[CHUNK] Step completed. Read: " + stepExecution.getReadCount()
                         + ", Written: " + stepExecution.getWriteCount()
                         + ", Skipped: " + stepExecution.getSkipCount());
@@ -153,7 +159,7 @@ public class DemoCommonBatchBeans {
         };
 
         // Header 校验器
-        com.batchweaver.core.fileprocess.function.HeaderValidator headerValidator = header -> {
+        HeaderValidator headerValidator = header -> {
             LocalDate today = LocalDate.now();
             if (!header.getDate().equals(today)) {
                 System.out.println("[WARN] Workflow file header date mismatch: expected=" + today + ", actual=" + header.getDate());
@@ -219,7 +225,7 @@ public class DemoCommonBatchBeans {
         };
 
         // Header 校验器：可选，这里不进行严格校验
-        com.batchweaver.core.fileprocess.function.HeaderValidator headerValidator = header -> {
+       HeaderValidator headerValidator = header -> {
             // 可以根据需要添加日期校验逻辑
             LocalDate today = LocalDate.now();
             if (!header.getDate().equals(today)) {
@@ -247,9 +253,8 @@ public class DemoCommonBatchBeans {
         lineTokenizer.setDelimiter("|");
         lineTokenizer.setNames("id", "name", "age", "email", "birthDate");
 
-        // FieldSetMapper
-        BeanWrapperFieldSetMapper<DemoUserInput> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(DemoUserInput.class);
+        // FieldSetMapper：使用 AnnotationDrivenFieldSetMapper 支持 @FileColumn 注解
+        AnnotationDrivenFieldSetMapper<DemoUserInput> fieldSetMapper =  new AnnotationDrivenFieldSetMapper<>(DemoUserInput.class);
 
         // 创建 HeaderFooterAwareReader
         return new HeaderFooterAwareReader<>(
@@ -311,6 +316,41 @@ public class DemoCommonBatchBeans {
             user.setBirthDate(input.getBirthDate());
             return user;
         };
+    }
+
+    /**
+     * 导入后校验监听器
+     * <p>
+     * 校验逻辑：实际处理条数（写入+跳过）必须等于 Footer 声明的记录数
+     * <p>
+     * 适用场景：
+     * - 有头有尾：校验 writeCount + skipCount == declaredCount（允许跳过）
+     * - 有头无尾/无头无尾：declaredCount=0，可以选择跳过校验或使用 Job 参数
+     */
+    @Bean
+    public FooterValidationListener footerValidationListener() {
+        // 定义校验逻辑
+        PostImportValidator validator = (declaredCount, readCount, writeCount, skipCount) -> {
+            // 场景1：有Footer，校验总处理数
+            if (declaredCount > 0) {
+                long totalProcessed = writeCount + skipCount;
+                if (totalProcessed != declaredCount) {
+                    throw new IllegalStateException(
+                            String.format("Import validation failed: Footer expects %d records, " +
+                                    "but actually wrote %d + skipped %d = %d (read=%d)",
+                                    declaredCount, writeCount, skipCount, totalProcessed, readCount)
+                    );
+                }
+                System.out.println("✅ Import validation passed: Footer=" + declaredCount +
+                        ", wrote=" + writeCount + ", skipped=" + skipCount);
+            } else {
+                // 场景2/3：无Footer，记录日志但不失败
+                System.out.println("ℹ️ No footer declaration, skipping count validation. " +
+                        "Wrote " + writeCount + " records (read=" + readCount + ", skip=" + skipCount + ")");
+            }
+        };
+
+        return new FooterValidationListener(validator);
     }
 }
 

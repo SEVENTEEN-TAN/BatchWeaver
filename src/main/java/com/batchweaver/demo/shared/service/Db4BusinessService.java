@@ -21,7 +21,7 @@ public class Db4BusinessService {
 
     private final NamedParameterJdbcTemplate namedJdbcTemplate4;
 
-    public Db4BusinessService(NamedParameterJdbcTemplate namedJdbcTemplate4) {
+    public Db4BusinessService(@Qualifier("namedJdbcTemplate4") NamedParameterJdbcTemplate namedJdbcTemplate4) {
         this.namedJdbcTemplate4 = namedJdbcTemplate4;
     }
 

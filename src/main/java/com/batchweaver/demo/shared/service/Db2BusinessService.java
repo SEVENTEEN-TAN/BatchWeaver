@@ -22,7 +22,7 @@ public class Db2BusinessService {
 
     private final NamedParameterJdbcTemplate namedJdbcTemplate2;
 
-    public Db2BusinessService(NamedParameterJdbcTemplate namedJdbcTemplate2) {
+    public Db2BusinessService(@Qualifier("namedJdbcTemplate2") NamedParameterJdbcTemplate namedJdbcTemplate2) {
         this.namedJdbcTemplate2 = namedJdbcTemplate2;
     }
 

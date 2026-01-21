@@ -21,7 +21,7 @@ public class Db3BusinessService {
 
     private final NamedParameterJdbcTemplate namedJdbcTemplate3;
 
-    public Db3BusinessService(NamedParameterJdbcTemplate namedJdbcTemplate3) {
+    public Db3BusinessService(@Qualifier("namedJdbcTemplate3") NamedParameterJdbcTemplate namedJdbcTemplate3) {
         this.namedJdbcTemplate3 = namedJdbcTemplate3;
     }
 

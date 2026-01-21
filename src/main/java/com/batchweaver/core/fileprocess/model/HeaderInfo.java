@@ -2,6 +2,7 @@ package com.batchweaver.core.fileprocess.model;
 
 import lombok.Data;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,7 +11,9 @@ import java.util.Map;
  * 文件头信息
  */
 @Data
-public class HeaderInfo {
+public class HeaderInfo implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * 日期

@@ -1,5 +1,6 @@
 package com.batchweaver.demo.config;
 
+import com.batchweaver.core.fileprocess.listener.FooterValidationListener;
 import com.batchweaver.demo.shared.entity.DemoUser;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
 import org.springframework.batch.core.Job;
@@ -67,13 +68,15 @@ public class ConditionalFlowConfig {
             PlatformTransactionManager tm2,
             ItemReader<DemoUserInput> demoUsersFileReader,
             ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserCopyIdProcessor,
-            ItemWriter<DemoUser> db2DemoUserWriter) {
+            ItemWriter<DemoUser> db2DemoUserWriter,
+            FooterValidationListener footerValidationListener) {
 
         return new StepBuilder("conditionalImportStep", jobRepository)
                 .<DemoUserInput, DemoUser>chunk(100, tm2)
                 .reader(demoUsersFileReader)
                 .processor(demoUserInputToDemoUserCopyIdProcessor)
                 .writer(db2DemoUserWriter)
+                .listener(footerValidationListener)
                 .faultTolerant()
                 .skipLimit(10)
                 .skip(FlatFileParseException.class)
