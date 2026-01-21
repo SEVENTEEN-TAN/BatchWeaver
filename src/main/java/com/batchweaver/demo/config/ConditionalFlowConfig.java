@@ -222,8 +222,8 @@ public class ConditionalFlowConfig {
     /**
      * Processor：DemoUserInput → DemoUser（忽略 age 字段）
      */
-    @Bean
-    public ItemProcessor<DemoUserInput, DemoUser> demoUserProcessor() {
+    @Bean("conditionalFlowDemoUserProcessor")
+    public ItemProcessor<DemoUserInput, DemoUser> conditionalFlowDemoUserProcessor() {
         return input -> {
             DemoUser user = new DemoUser();
             user.setId(input.getId());
@@ -238,8 +238,8 @@ public class ConditionalFlowConfig {
     /**
      * Writer：写入 DB2
      */
-    @Bean
-    public ItemWriter<DemoUser> demoUserWriter(Db2BusinessService db2BusinessService) {
+    @Bean("conditionalFlowDemoUserWriter")
+    public ItemWriter<DemoUser> conditionalFlowDemoUserWriter(Db2BusinessService db2BusinessService) {
         return items -> db2BusinessService.batchInsertUsers(new java.util.ArrayList<>(items.getItems()));
     }
 }
