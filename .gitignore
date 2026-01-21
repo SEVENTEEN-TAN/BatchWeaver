@@ -39,3 +39,9 @@ Thumbs.db
 *.swp
 *~
 nul
+
+# Config files (keep *.example)
+*.yml
+!*.yml.example
+*.yaml
+!*.yaml.example
