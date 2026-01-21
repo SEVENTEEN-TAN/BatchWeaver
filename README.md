@@ -22,15 +22,15 @@
 ### 2. 元数据与业务事务隔离
 
 **设计原则**：
-- **元数据事务（tm1）**：绝对不受业务事务影响，必须提交成功
-- **业务事务（tm2/tm3/tm4）**：失败时可以回滚
+- **元数据事务（tm1Meta）**：绝对不受业务事务影响，必须提交成功
+- **业务事务（tm1/tm2/tm3/tm4）**：失败时可以回滚
 - **隔离保证**：Step 失败时，业务数据回滚，元数据记录 FAILED 状态
 
 **失败场景流程**：
 ```
 Step 执行失败时：
 ├── ❌ 业务事务（tm2）回滚 → 业务数据不落库
-└── ✅ 元数据事务（tm1）提交 → 记录 FAILED 状态，支持断点续传
+└── ✅ 元数据事务（tm1Meta）提交 → 记录 FAILED 状态，支持断点续传
 ```
 
 📖 **配置详情**：参见 [docs/多数据源.md](docs/多数据源.md)
@@ -39,7 +39,7 @@ Step 执行失败时：
 
 | 数据源 | 用途 | 事务管理器 |
 |--------|------|-----------|
-| db1 | Spring Batch 元数据 + 业务数据 | tm1 |
+| db1 | Spring Batch 元数据 + 业务数据 | tm1Meta（元数据）/ tm1（业务） |
 | db2 | 业务数据库 2 | tm2 |
 | db3 | 业务数据库 3 | tm3 |
 | db4 | 业务数据库 4 | tm4 |
@@ -186,7 +186,7 @@ mvn spring-boot:run
 
 | 类名 | 职责 |
 |------|------|
-| **BatchInfrastructureConfig** | JobRepository 绑定 tm1 |
+| **BatchInfrastructureConfig** | JobRepository 绑定 tm1Meta |
 | **DataSource1-4Config** | 4 个数据源配置 |
 
 ### 文件处理组件
@@ -206,8 +206,8 @@ MIT License
 ---
 
 **⚠️ 重要提示**：
-1. 元数据事务（tm1）与业务事务（tm2/tm3/tm4）必须严格隔离
-2. JobRepository 必须绑定 tm1
+1. 元数据事务（tm1Meta）与业务事务（tm1/tm2/tm3/tm4）必须严格隔离
+2. JobRepository 必须绑定 tm1Meta
 3. Step 必须显式指定业务事务管理器
 4. Service 层 @Transactional 注解必须指定 transactionManager
 

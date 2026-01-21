@@ -27,7 +27,7 @@ import org.springframework.validation.BindException;
  * <p>
  * 核心配置：展示事务隔离机制
  * - Step 使用 tm2（业务事务管理器）
- * - JobRepository 使用 tm1（元数据事务管理器）
+ * - JobRepository 使用 tm1Meta（元数据专用事务管理器）
  * - 失败时：业务事务回滚，元数据事务提交 FAILED 状态
  */
 @Configuration
@@ -71,7 +71,7 @@ public class DemoJobConfig {
     /**
      * 关键配置：Step 使用 tm2（业务事务管理器）
      *
-     * @param jobRepository JobRepository（使用 tm1 管理元数据）
+     * @param jobRepository JobRepository（使用 tm1Meta 管理元数据）
      * @param tm2           业务事务管理器（管理 db2 的业务数据）
      */
     @Bean

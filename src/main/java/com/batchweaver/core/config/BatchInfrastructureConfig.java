@@ -20,13 +20,13 @@ import javax.sql.DataSource;
 /**
  * Batch 基础设施配置 - 元数据事务独立配置
  * <p>
- * 核心设计：JobRepository 绑定 tm1（db1 事务管理器）
+ * 核心设计：JobRepository 绑定 tm1Meta（元数据专用事务管理器）
  * 确保元数据事务独立于业务事务，失败时元数据也能提交
  * <p>
  * 事务隔离保证：
- * - JobRepository 使用 tm1 管理元数据表（BATCH_JOB_EXECUTION、BATCH_STEP_EXECUTION 等）
- * - Step 使用 tm2/tm3/tm4 管理业务数据
- * - 业务失败时：tm2 回滚，tm1 提交 FAILED 状态
+ * - JobRepository 使用 tm1Meta 管理元数据表（BATCH_JOB_EXECUTION、BATCH_STEP_EXECUTION 等）
+ * - Step 使用 tm1/tm2/tm3/tm4 管理业务数据（必须显式指定）
+ * - 业务失败时：业务事务回滚，tm1Meta 提交 FAILED 状态
  * <p>
  * 注意：不使用 @EnableBatchProcessing，改为显式定义所有基础设施 Bean，
  * 避免 Bean 重复注册冲突，并确保数据源和事务管理器正确绑定。
@@ -35,19 +35,19 @@ import javax.sql.DataSource;
 public class BatchInfrastructureConfig {
 
     /**
-     * 关键配置：JobRepository 绑定 tm1（db1 事务管理器）
+     * 关键配置：JobRepository 绑定 tm1Meta（元数据专用事务管理器）
      * 确保元数据事务独立于业务事务，失败时元数据也能提交
      *
      * @param dataSource1 db1 数据源（元数据表所在数据库）
-     * @param tm1         db1 事务管理器（元数据事务管理器）
+     * @param tm1Meta     元数据专用事务管理器（标记 @Primary）
      * @return JobRepository
      */
     @Bean
     public JobRepository jobRepository(@Qualifier("dataSource1") DataSource dataSource1,
-                                       @Qualifier("tm1") PlatformTransactionManager tm1) throws Exception {
+                                       @Qualifier("tm1Meta") PlatformTransactionManager tm1Meta) throws Exception {
         JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
         factory.setDataSource(dataSource1);       // ✅ 使用 db1 数据源
-        factory.setTransactionManager(tm1);       // 绑定 tm1，确保元数据事务独立
+        factory.setTransactionManager(tm1Meta);   // 绑定 tm1Meta，确保元数据事务独立
         factory.setIsolationLevelForCreate("ISOLATION_READ_COMMITTED");
         factory.setTablePrefix("BATCH_");         // Spring Batch 元数据表前缀
         factory.setDatabaseType("SQLSERVER");     // SQL Server 数据库类型
