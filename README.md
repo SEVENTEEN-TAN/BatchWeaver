@@ -73,37 +73,47 @@ private String email;
 
 ```
 batch-weaver/
-├── src/main/java/com/batchweaver/
-│   ├── config/
-│   │   ├── datasource/          # 数据源配置（4 个数据源）
-│   │   ├── batch/               # Batch 基础设施 + Job 配置
-│   │   └── flatfile/            # FlatFile 框架配置
-│   ├── core/
-│   │   └── fileprocess/
-│   │       ├── template/        # Job 构建模板
-│   │       ├── reader/          # HeaderFooterAwareReader
-│   │       ├── function/        # 函数式接口
-│   │       └── model/           # 数据模型
-│   ├── batch/
-│   │   ├── reader/              # 注解驱动的字段映射器
-│   │   ├── processor/           # 数据清洗处理器
-│   │   └── writer/              # 数据写入器
-│   ├── domain/
-│   │   ├── annotation/          # @FileColumn 注解
-│   │   ├── entity/              # 实体类
-│   │   └── converter/           # 类型转换器
-│   ├── service/                 # 业务服务层
-│   └── util/                    # 工具类（CSV 注入防护、路径校验）
-├── src/main/resources/
-│   └── application.yml          # 配置文件
+├── data/
+│   └── input/                   # 示例输入文件
 ├── docs/                        # 文档目录
-│   ├── 快速开始.md              # 5分钟快速体验指南
-│   ├── 技术框架.md              # 框架架构与设计模式
-│   ├── 多数据源.md              # 多数据源配置与事务隔离
-│   ├── 文件读写.md              # 单次扫描架构设计
-│   ├── 元数据表.md              # Spring Batch 元数据表说明
-│   └── 测试文档.md              # 测试用例与验证方法
-└── src/test/java/               # 集成测试
+│   ├── 快速开始.md
+│   ├── 技术框架.md
+│   ├── 多数据源.md
+│   ├── 文件读写.md
+│   ├── 元数据表.md
+│   └── 测试文档.md
+├── script/
+│   └── init.sql                 # Spring Batch 元数据表初始化脚本
+├── src/main/java/com/batchweaver/
+│   ├── BatchWeaverApplication.java
+│   ├── batch/                   # 示例 Job（导入到 db2/db3/db4）
+│   │   ├── config/
+│   │   ├── entity/
+│   │   └── service/
+│   ├── core/                    # 框架核心（多数据源、单次扫描、工具类等）
+│   │   ├── annotation/          # @FileColumn
+│   │   ├── config/              # Batch 基础设施 + 数据源配置
+│   │   │   └── datasource/      # dataSource1~4 + tm1~4
+│   │   ├── converter/           # 类型转换器
+│   │   ├── fileprocess/         # 单次扫描：template/reader/writer/listener 等
+│   │   ├── processor/           # 数据清洗处理器
+│   │   ├── reader/              # 注解驱动字段映射
+│   │   ├── scheduler/           # Job 启动/调度入口
+│   │   ├── util/                # CSV 注入防护、路径校验
+│   │   └── validator/           # 首尾行校验
+│   └── demo/                    # 组合/流程示例（chunk/workflow/export/import 等）
+│       ├── config/
+│       └── shared/
+│           ├── entity/
+│           └── service/
+├── src/main/resources/
+│   ├── META-INF/spring.factories
+│   ├── application.yml.example
+│   ├── log4j2-spring.xml
+│   ├── schema-db1.sql
+│   └── schema-db2.sql
+├── pom.xml
+└── README.md
 ```
 
 ---
