@@ -178,11 +178,10 @@ public class DemoCommonBatchBeans {
         // LineTokenizer：逗号分隔
         DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
         lineTokenizer.setDelimiter(",");
-        lineTokenizer.setNames("name", "age", "email", "birthDate");
+        lineTokenizer.setNames("id","name", "age", "email", "birthDate");
 
         // FieldSetMapper
-        BeanWrapperFieldSetMapper<DemoUserInput> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(DemoUserInput.class);
+        AnnotationDrivenFieldSetMapper<DemoUserInput> fieldSetMapper = new AnnotationDrivenFieldSetMapper<>(DemoUserInput.class);
 
         // 创建 HeaderFooterAwareReader
         return new HeaderFooterAwareReader<>(

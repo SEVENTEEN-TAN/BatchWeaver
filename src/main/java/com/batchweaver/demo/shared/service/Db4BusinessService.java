@@ -1,6 +1,7 @@
 package com.batchweaver.demo.shared.service;
 
 import com.batchweaver.demo.shared.entity.DemoUser;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -21,14 +22,15 @@ public class Db4BusinessService {
 
     private final NamedParameterJdbcTemplate namedJdbcTemplate4;
 
+    @Autowired
     public Db4BusinessService(@Qualifier("namedJdbcTemplate4") NamedParameterJdbcTemplate namedJdbcTemplate4) {
         this.namedJdbcTemplate4 = namedJdbcTemplate4;
     }
 
     @Transactional(transactionManager = "tm4", propagation = Propagation.REQUIRED)
     public void batchInsertUsers(List<DemoUser> users) {
-        String sql = "INSERT INTO DEMO_USER (id, name, email, birth_date) " +
-                "VALUES (:id, :name, :email, :birthDate)";
+        String sql = "INSERT INTO DEMO_USER ( name, email, birth_date) " +
+                "VALUES ( :name, :email, :birthDate)";
 
         SqlParameterSource[] batchParams = users.stream()
                 .map(user -> new MapSqlParameterSource()

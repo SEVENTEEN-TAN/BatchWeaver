@@ -6,10 +6,7 @@ import com.batchweaver.demo.shared.service.Db3BusinessService;
 import com.batchweaver.demo.shared.service.Db4BusinessService;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
 import com.batchweaver.demo.shared.service.MockMailSender;
-import org.springframework.batch.core.BatchStatus;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
@@ -269,8 +266,8 @@ public class ComplexWorkflowConfig {
     @Bean
     public Step step7Export(
             JobRepository jobRepository,
-            PlatformTransactionManager tm2,
-            DataSource dataSource2,
+            @Qualifier("tm2") PlatformTransactionManager tm2,
+            @Qualifier("dataSource2") DataSource dataSource2,
             MockMailSender mockMailSender) throws Exception {
 
         // Reader
@@ -280,6 +277,7 @@ public class ComplexWorkflowConfig {
         reader.setRowMapper(new BeanPropertyRowMapper<>(DemoUser.class));
         reader.setQueryProvider(resultExportQueryProvider(dataSource2));
         reader.setName("resultExportReader");
+        reader.afterPropertiesSet();  // 初始化 reader
 
         // Writer
         FlatFileItemWriter<DemoUser> writer = new FlatFileItemWriterBuilder<DemoUser>()
@@ -297,6 +295,7 @@ public class ComplexWorkflowConfig {
                 .<DemoUser, DemoUser>chunk(100, tm2)
                 .reader(reader)
                 .writer(writer)
+                .stream(writer)  // 注册 writer 到 stream，让 Spring Batch 管理其生命周期
                 .listener(new ExportCompletionListener(mockMailSender))
                 .build();
     }
@@ -317,7 +316,7 @@ public class ComplexWorkflowConfig {
     /**
      * 导出完成监听器
      */
-    public static class ExportCompletionListener implements org.springframework.batch.core.StepExecutionListener {
+    public static class ExportCompletionListener implements StepExecutionListener {
         private final MockMailSender mockMailSender;
 
         public ExportCompletionListener(MockMailSender mockMailSender) {

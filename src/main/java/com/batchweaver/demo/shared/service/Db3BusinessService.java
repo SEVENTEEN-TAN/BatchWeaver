@@ -27,8 +27,8 @@ public class Db3BusinessService {
 
     @Transactional(transactionManager = "tm3", propagation = Propagation.REQUIRED)
     public void batchInsertUsers(List<DemoUser> users) {
-        String sql = "INSERT INTO DEMO_USER (id, name, email, birth_date) " +
-                "VALUES (:id, :name, :email, :birthDate)";
+        String sql = "INSERT INTO DEMO_USER ( name, email, birth_date) " +
+                "VALUES ( :name, :email, :birthDate)";
 
         SqlParameterSource[] batchParams = users.stream()
                 .map(user -> new MapSqlParameterSource()
