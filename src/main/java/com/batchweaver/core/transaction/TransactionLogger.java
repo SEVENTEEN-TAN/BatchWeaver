@@ -71,7 +71,7 @@ public class TransactionLogger {
         TransactionContext context = new TransactionContext(transactionName);
 
         log.info("================================================================================");
-        log.info("🔄 [事务开始] ID: {}, 名称: {}, 线程: [{}-{}]",
+        log.info("[事务开始] ID: {}, 名称: {}, 线程: [{}-{}]",
                 context.getTransactionId(),
                 context.getTransactionName(),
                 context.getThreadId(),
@@ -91,7 +91,7 @@ public class TransactionLogger {
      */
     public static void logTransactionCommit(TransactionContext context) {
         log.info("================================================================================");
-        log.info("✅ [事务提交] ID: {}, 名称: {}, 耗时: {}ms",
+        log.info("[事务提交] ID: {}, 名称: {}, 耗时: {}ms",
                 context.getTransactionId(),
                 context.getTransactionName(),
                 context.getElapsedTime());
@@ -103,7 +103,7 @@ public class TransactionLogger {
      */
     public static void logTransactionRollback(TransactionContext context, Throwable cause) {
         log.warn("================================================================================");
-        log.warn("❌ [事务回滚] ID: {}, 名称: {}, 耗时: {}ms",
+        log.warn("[事务回滚] ID: {}, 名称: {}, 耗时: {}ms",
                 context.getTransactionId(),
                 context.getTransactionName(),
                 context.getElapsedTime());
@@ -118,9 +118,9 @@ public class TransactionLogger {
      */
     public static void logSqlExecution(String sql, Object... params) {
         if (log.isDebugEnabled()) {
-            log.debug("   📝 [SQL执行] {}", sql);
+            log.debug("   [SQL执行] {}", sql);
             if (params != null && params.length > 0) {
-                log.debug("   📝 [SQL参数] {}", java.util.Arrays.toString(params));
+                log.debug("   [SQL参数] {}", java.util.Arrays.toString(params));
             }
         }
     }
@@ -129,14 +129,14 @@ public class TransactionLogger {
      * 记录连接获取
      */
     public static void logConnectionAcquisition(String dataSourceName) {
-        log.debug("   🔌 [连接获取] 数据源: {}", dataSourceName);
+        log.debug("   [连接获取] 数据源: {}", dataSourceName);
     }
 
     /**
      * 记录连接释放
      */
     public static void logConnectionRelease(String dataSourceName) {
-        log.debug("   🔌 [连接释放] 数据源: {}", dataSourceName);
+        log.debug("   [连接释放] 数据源: {}", dataSourceName);
     }
 
     /**
@@ -147,25 +147,25 @@ public class TransactionLogger {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void beforeCommit(boolean readOnly) {
-                    log.info("   💾 [事务即将提交] ID: {}, 只读: {}", context.getTransactionId(), readOnly);
+                    log.info("   [事务即将提交] ID: {}, 只读: {}", context.getTransactionId(), readOnly);
                 }
 
                 @Override
                 public void beforeCompletion() {
-                    log.debug("   🏁 [事务即将完成] ID: {}", context.getTransactionId());
+                    log.debug("   [事务即将完成] ID: {}", context.getTransactionId());
                 }
 
                 @Override
                 public void afterCommit() {
-                    log.info("   ✅ [事务已提交] ID: {}", context.getTransactionId());
+                    log.info("   [事务已提交] ID: {}", context.getTransactionId());
                 }
 
                 @Override
                 public void afterCompletion(int status) {
                     if (status == STATUS_COMMITTED) {
-                        log.debug("   ✅ [事务完成-已提交] ID: {}", context.getTransactionId());
+                        log.debug("   [事务完成-已提交] ID: {}", context.getTransactionId());
                     } else if (status == STATUS_ROLLED_BACK) {
-                        log.warn("   ❌ [事务完成-已回滚] ID: {}", context.getTransactionId());
+                        log.warn("   [事务完成-已回滚] ID: {}", context.getTransactionId());
                     }
                 }
             });
