@@ -13,6 +13,7 @@ import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
@@ -47,8 +48,8 @@ public class FileExportConfig {
     @Bean
     public Job format1ExportJob(
             JobRepository jobRepository,
-            PlatformTransactionManager tm2,
-            DataSource dataSource2) throws Exception {
+            @Qualifier("tm2") PlatformTransactionManager tm2,
+            @Qualifier("dataSource2") DataSource dataSource2) throws Exception {
 
         // Reader
         JdbcPagingItemReader<DemoUser> reader = new JdbcPagingItemReader<>();
@@ -89,6 +90,7 @@ public class FileExportConfig {
                 .<DemoUser, DemoUser>chunk(100, tm2)
                 .reader(reader)
                 .writer(countingWriter)
+                .stream(writer)  // 注册 writer 到 stream，让 Spring Batch 管理其生命周期
                 .build();
 
         return new JobBuilder("format1ExportJob", jobRepository)
@@ -122,8 +124,8 @@ public class FileExportConfig {
     @Bean
     public Job format2ExportJob(
             JobRepository jobRepository,
-            PlatformTransactionManager tm2,
-            DataSource dataSource2) throws Exception {
+            @Qualifier("tm2") PlatformTransactionManager tm2,
+            @Qualifier("dataSource2") DataSource dataSource2) throws Exception {
 
         // Reader
         JdbcPagingItemReader<DemoUser> reader = new JdbcPagingItemReader<>();
@@ -164,6 +166,7 @@ public class FileExportConfig {
                 .<DemoUser, DemoUser>chunk(100, tm2)
                 .reader(reader)
                 .writer(countingWriter)
+                .stream(writer)  // 注册 writer 到 stream，让 Spring Batch 管理其生命周期
                 .build();
 
         return new JobBuilder("format2ExportJob", jobRepository)
