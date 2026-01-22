@@ -321,28 +321,27 @@ public class DemoCommonBatchBeans {
     /**
      * 导入后校验监听器
      * <p>
-     * 校验逻辑：实际处理条数（写入+跳过）必须等于 Footer 声明的记录数
+     * 校验逻辑：实际写入条数必须等于 Footer 声明的记录数
      * <p>
      * 适用场景：
-     * - 有头有尾：校验 writeCount + skipCount == declaredCount（允许跳过）
+     * - 有头有尾：严格校验 writeCount == declaredCount
      * - 有头无尾/无头无尾：declaredCount=0，可以选择跳过校验或使用 Job 参数
      */
     @Bean
     public FooterValidationListener footerValidationListener() {
         // 定义校验逻辑
         PostImportValidator validator = (declaredCount, readCount, writeCount, skipCount) -> {
-            // 场景1：有Footer，校验总处理数
+            // 场景1：有Footer，严格校验
             if (declaredCount > 0) {
-                long totalProcessed = writeCount + skipCount;
-                if (totalProcessed != declaredCount) {
+                if (writeCount != declaredCount) {
                     throw new IllegalStateException(
                             String.format("Import validation failed: Footer expects %d records, " +
-                                    "but actually wrote %d + skipped %d = %d (read=%d)",
-                                    declaredCount, writeCount, skipCount, totalProcessed, readCount)
+                                    "but actually wrote %d (read=%d, skip=%d)",
+                                    declaredCount, writeCount, readCount, skipCount)
                     );
                 }
                 System.out.println("✅ Import validation passed: Footer=" + declaredCount +
-                        ", wrote=" + writeCount + ", skipped=" + skipCount);
+                        ", wrote=" + writeCount);
             } else {
                 // 场景2/3：无Footer，记录日志但不失败
                 System.out.println("ℹ️ No footer declaration, skipping count validation. " +
