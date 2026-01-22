@@ -1,8 +1,12 @@
 package com.batchweaver;
 
+import com.batchweaver.demo.components.SharedListenersConfig;
+import com.batchweaver.demo.components.SharedProcessorsConfig;
+import com.batchweaver.demo.components.SharedWritersConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration;
+import org.springframework.context.annotation.Import;
 
 /**
  * Spring Batch 5.x Multi-Datasource System
@@ -30,6 +34,11 @@ import org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration;
  * </ul>
  */
 @SpringBootApplication(exclude = BatchAutoConfiguration.class)
+@Import({
+        SharedWritersConfig.class,
+        SharedListenersConfig.class,
+        SharedProcessorsConfig.class
+})
 public class BatchWeaverApplication {
 
     public static void main(String[] args) {

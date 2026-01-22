@@ -1,14 +1,12 @@
-package com.batchweaver.demo.config;
+package com.batchweaver.demo.jobs;
 
-import com.batchweaver.demo.shared.entity.ChunkUserInput;
-import com.batchweaver.demo.shared.entity.DemoUser;
-import com.batchweaver.demo.shared.entity.DemoUserInput;
-import com.batchweaver.demo.shared.service.Db2BusinessService;
+import com.batchweaver.demo.entity.ChunkUserInput;
+import com.batchweaver.demo.entity.DemoUser;
+import com.batchweaver.demo.service.Db2BusinessService;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ExecutionContext;

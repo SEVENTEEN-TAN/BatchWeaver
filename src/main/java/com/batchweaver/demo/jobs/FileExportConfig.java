@@ -1,6 +1,7 @@
-package com.batchweaver.demo.config;
+package com.batchweaver.demo.jobs;
 
-import com.batchweaver.demo.shared.entity.DemoUser;
+import com.batchweaver.core.factory.BatchReaderFactory;
+import com.batchweaver.demo.entity.DemoUser;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -13,11 +14,11 @@ import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
@@ -36,6 +37,9 @@ import java.util.concurrent.atomic.AtomicLong;
 @Configuration
 public class FileExportConfig {
 
+    @Autowired
+    private BatchReaderFactory readerFactory;
+
     // =============================================================
     // Format1: yyyyMMdd + 纯数字 Footer
     // =============================================================
@@ -51,14 +55,14 @@ public class FileExportConfig {
             @Qualifier("tm2") PlatformTransactionManager tm2,
             @Qualifier("dataSource2") DataSource dataSource2) throws Exception {
 
-        // Reader
-        JdbcPagingItemReader<DemoUser> reader = new JdbcPagingItemReader<>();
-        reader.setDataSource(dataSource2);
-        reader.setPageSize(100);
-        reader.setRowMapper(new BeanPropertyRowMapper<>(DemoUser.class));
-        reader.setQueryProvider(format1QueryProvider(dataSource2));
-        reader.setName("format1ExportReader");
-        reader.afterPropertiesSet();  // 初始化 reader
+        // Reader - 使用工厂创建，自动初始化
+        JdbcPagingItemReader<DemoUser> reader = readerFactory.createJdbcPagingReader(
+                "format1ExportReader",
+                dataSource2,
+                format1QueryProvider(dataSource2),
+                DemoUser.class,
+                100
+        );
 
         // Writer with Header and Footer
         AtomicLong writeCount = new AtomicLong(0);
@@ -127,14 +131,14 @@ public class FileExportConfig {
             @Qualifier("tm2") PlatformTransactionManager tm2,
             @Qualifier("dataSource2") DataSource dataSource2) throws Exception {
 
-        // Reader
-        JdbcPagingItemReader<DemoUser> reader = new JdbcPagingItemReader<>();
-        reader.setDataSource(dataSource2);
-        reader.setPageSize(100);
-        reader.setRowMapper(new BeanPropertyRowMapper<>(DemoUser.class));
-        reader.setQueryProvider(format2QueryProvider(dataSource2));
-        reader.setName("format2ExportReader");
-        reader.afterPropertiesSet();  // 初始化 reader
+        // Reader - 使用工厂创建，自动初始化
+        JdbcPagingItemReader<DemoUser> reader = readerFactory.createJdbcPagingReader(
+                "format2ExportReader",
+                dataSource2,
+                format2QueryProvider(dataSource2),
+                DemoUser.class,
+                100
+        );
 
         // Writer with Header and Footer
         java.util.concurrent.atomic.AtomicLong writeCount = new java.util.concurrent.atomic.AtomicLong(0);

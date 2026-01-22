@@ -1,4 +1,4 @@
-package com.batchweaver.demo.shared.entity;
+package com.batchweaver.demo.entity;
 
 import com.batchweaver.core.annotation.FileColumn;
 import com.batchweaver.core.converter.StringToDateConverter;

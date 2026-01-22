@@ -1,31 +1,17 @@
-package com.batchweaver.demo.shared.config;
+package com.batchweaver.demo.common;
 
 import com.batchweaver.core.fileprocess.function.FooterParser;
 import com.batchweaver.core.fileprocess.function.FooterValidator;
 import com.batchweaver.core.fileprocess.function.HeaderParser;
 import com.batchweaver.core.fileprocess.function.HeaderValidator;
-import com.batchweaver.core.fileprocess.function.PostImportValidator;
-import com.batchweaver.core.fileprocess.listener.FooterValidationListener;
 import com.batchweaver.core.fileprocess.model.FooterInfo;
 import com.batchweaver.core.fileprocess.model.HeaderInfo;
 import com.batchweaver.core.fileprocess.reader.FooterLineDetector;
 import com.batchweaver.core.fileprocess.reader.HeaderFooterAwareReader;
 import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
-import com.batchweaver.demo.shared.entity.ChunkUserInput;
-import com.batchweaver.demo.shared.entity.DemoUser;
-import com.batchweaver.demo.shared.service.Db2BusinessService;
-import com.batchweaver.demo.shared.service.Db3BusinessService;
-import com.batchweaver.demo.shared.service.Db4BusinessService;
-import com.batchweaver.demo.shared.entity.DemoUserInput;
-import org.springframework.batch.core.ChunkListener;
-import org.springframework.batch.core.ExitStatus;
-import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.StepExecutionListener;
-import org.springframework.batch.core.scope.context.ChunkContext;
-import org.springframework.batch.item.ItemProcessor;
-import org.springframework.batch.item.ItemWriter;
+import com.batchweaver.demo.entity.ChunkUserInput;
+import com.batchweaver.demo.entity.DemoUserInput;
 import org.springframework.batch.item.file.FlatFileParseException;
-import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,7 +19,6 @@ import org.springframework.core.io.FileSystemResource;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 
 @Configuration
 public class DemoCommonBatchBeans {
@@ -94,47 +79,6 @@ public class DemoCommonBatchBeans {
     }
 
 
-    /**
-     * Chunk 执行监听器
-     */
-    @Bean
-    public ChunkListener chunkExecutionListener() {
-        return new ChunkListener() {
-            @Override
-            public void beforeChunk(ChunkContext context) {
-                System.out.println("========================================");
-                System.out.println("[CHUNK] Starting chunk: " + context.getAttribute("chunk.count"));
-            }
-
-            @Override
-            public void afterChunk(ChunkContext context) {
-                System.out.println("[CHUNK] Chunk completed");
-                System.out.println("========================================");
-            }
-        };
-    }
-
-
-    /**
-     * Step 执行监听器实现
-     */
-    @Bean
-    public StepExecutionListener StepExecutionListenerImpl() {
-        return new StepExecutionListener() {
-            @Override
-            public void beforeStep(StepExecution stepExecution) {
-                System.out.println("[CHUNK] Step started");
-            }
-
-            @Override
-            public ExitStatus afterStep(StepExecution stepExecution) {
-                System.out.println("[CHUNK] Step completed. Read: " + stepExecution.getReadCount()
-                        + ", Written: " + stepExecution.getWriteCount()
-                        + ", Skipped: " + stepExecution.getSkipCount());
-                return stepExecution.getExitStatus();
-            }
-        };
-    }
 
 // =========== Job5: ComplexWorkflow
     /**
@@ -274,76 +218,5 @@ public class DemoCommonBatchBeans {
 
 
 
-    @Bean()
-    public ItemWriter<DemoUser> db2DemoUserWriter(Db2BusinessService db2BusinessService) {
-        return items -> db2BusinessService.batchInsertUsers(new ArrayList<>(items.getItems()));
-    }
-
-    @Bean()
-    public ItemWriter<DemoUser> db3DemoUserWriter(Db3BusinessService db3BusinessService) {
-        return items -> db3BusinessService.batchInsertUsers(new ArrayList<>(items.getItems()));
-    }
-
-    @Bean()
-    public ItemWriter<DemoUser> db4DemoUserWriter(Db4BusinessService db4BusinessService) {
-        return items -> db4BusinessService.batchInsertUsers(new ArrayList<>(items.getItems()));
-    }
-
-    @Bean()
-    public ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserCopyIdProcessor() {
-        return input -> {
-            DemoUser user = new DemoUser();
-            user.setId(input.getId());
-            user.setName(input.getName());
-            user.setEmail(input.getEmail());
-            user.setBirthDate(input.getBirthDate());
-            return user;
-        };
-    }
-
-    @Bean()
-    public ItemProcessor<ChunkUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor() {
-        return input -> {
-            DemoUser user = new DemoUser();
-            user.setName(input.getName());
-            user.setEmail(input.getEmail());
-            user.setBirthDate(input.getBirthDate());
-            return user;
-        };
-    }
-
-    /**
-     * 导入后校验监听器
-     * <p>
-     * 校验逻辑：实际写入条数必须等于 Footer 声明的记录数
-     * <p>
-     * 适用场景：
-     * - 有头有尾：严格校验 writeCount == declaredCount
-     * - 有头无尾/无头无尾：declaredCount=0，可以选择跳过校验或使用 Job 参数
-     */
-    @Bean
-    public FooterValidationListener footerValidationListener() {
-        // 定义校验逻辑
-        PostImportValidator validator = (declaredCount, readCount, writeCount, skipCount) -> {
-            // 场景1：有Footer，严格校验
-            if (declaredCount > 0) {
-                if (writeCount != declaredCount) {
-                    throw new IllegalStateException(
-                            String.format("Import validation failed: Footer expects %d records, " +
-                                    "but actually wrote %d (read=%d, skip=%d)",
-                                    declaredCount, writeCount, readCount, skipCount)
-                    );
-                }
-                System.out.println("✅ Import validation passed: Footer=" + declaredCount +
-                        ", wrote=" + writeCount);
-            } else {
-                // 场景2/3：无Footer，记录日志但不失败
-                System.out.println("ℹ️ No footer declaration, skipping count validation. " +
-                        "Wrote " + writeCount + " records (read=" + readCount + ", skip=" + skipCount + ")");
-            }
-        };
-
-        return new FooterValidationListener(validator);
-    }
 }
 

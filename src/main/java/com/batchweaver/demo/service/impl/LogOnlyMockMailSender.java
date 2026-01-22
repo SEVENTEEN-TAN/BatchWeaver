@@ -1,5 +1,6 @@
-package com.batchweaver.demo.shared.service;
+package com.batchweaver.demo.service.impl;
 
+import com.batchweaver.demo.service.MockMailSender;
 import org.springframework.stereotype.Component;
 
 /**

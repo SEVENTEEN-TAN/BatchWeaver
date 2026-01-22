@@ -74,7 +74,8 @@ private String email;
 ```
 batch-weaver/
 ├── data/
-│   └── input/                   # 示例输入文件
+│   ├── input/                   # 示例输入文件
+│   └── output/                  # 导出文件输出目录
 ├── docs/                        # 文档目录
 │   ├── 快速开始.md
 │   ├── 技术框架.md
@@ -86,32 +87,36 @@ batch-weaver/
 │   └── init.sql                 # Spring Batch 元数据表初始化脚本
 ├── src/main/java/com/batchweaver/
 │   ├── BatchWeaverApplication.java
-│   ├── batch/                   # 示例 Job（导入到 db2/db3/db4）
-│   │   ├── config/
-│   │   ├── entity/
-│   │   └── service/
-│   ├── core/                    # 框架核心（多数据源、单次扫描、工具类等）
-│   │   ├── annotation/          # @FileColumn
+│   ├── core/                    # 框架核心（多数据源、单次扫描、工厂模式等）
+│   │   ├── annotation/          # @FileColumn 注解
 │   │   ├── config/              # Batch 基础设施 + 数据源配置
 │   │   │   └── datasource/      # dataSource1~4 + tm1~4
 │   │   ├── converter/           # 类型转换器
+│   │   ├── factory/             # ⭐ 工厂模式（Reader/Writer 创建）
 │   │   ├── fileprocess/         # 单次扫描：template/reader/writer/listener 等
 │   │   ├── processor/           # 数据清洗处理器
 │   │   ├── reader/              # 注解驱动字段映射
 │   │   ├── scheduler/           # Job 启动/调度入口
 │   │   ├── util/                # CSV 注入防护、路径校验
 │   │   └── validator/           # 首尾行校验
-│   └── demo/                    # 组合/流程示例（chunk/workflow/export/import 等）
+│   └── demo/                    # 示例作业（chunk/workflow/export/import 等）
 │       ├── config/
+│       │   ├── components/      # ⭐ 共享组件（Listeners/Processors/Writers）
+│       │   └── jobs/            # ⭐ 作业配置（按功能分类）
 │       └── shared/
-│           ├── entity/
-│           └── service/
+│           ├── config/          # 共享配置（Reader 等）
+│           ├── entity/          # 实体类
+│           └── service/         # 业务服务（接口）
+│               └── impl/        # ⭐ 业务服务实现
 ├── src/main/resources/
 │   ├── META-INF/spring.factories
 │   ├── application.yml.example
 │   ├── log4j2-spring.xml
 │   ├── schema-db1.sql
 │   └── schema-db2.sql
+├── run-all-jobs.bat             # Windows 批处理脚本
+├── run-all-jobs.ps1             # PowerShell 脚本（推荐）
+├── run-all-jobs-maven.ps1       # Maven 执行脚本
 ├── pom.xml
 └── README.md
 ```
@@ -184,6 +189,13 @@ mvn spring-boot:run
 
 ## 📋 核心类说明
 
+### 工厂模式组件 ⭐
+
+| 类名 | 职责 |
+|------|------|
+| **BatchReaderFactory** | 统一创建和初始化 JdbcPagingItemReader |
+| **BatchWriterFactory** | 创建 FlatFileItemWriter 并强制 stream 注册 |
+
 ### 单次扫描架构组件
 
 | 类名 | 职责 |
@@ -206,6 +218,14 @@ mvn spring-boot:run
 | **AnnotationDrivenFieldSetMapper** | @FileColumn 注解解析 |
 | **HeaderParser/FooterParser** | 头尾行解析 |
 | **HeaderValidator/FooterValidator** | 头尾行校验 |
+
+### 配置分层组件 ⭐
+
+| 类名 | 职责 |
+|------|------|
+| **SharedWritersConfig** | 共享 Writer Bean（db2/db3/db4） |
+| **SharedListenersConfig** | 共享 Listener Bean（chunk/step/footer） |
+| **SharedProcessorsConfig** | 共享 Processor Bean（数据转换） |
 
 ---
 

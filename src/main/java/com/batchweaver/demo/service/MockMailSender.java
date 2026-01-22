@@ -1,4 +1,4 @@
-package com.batchweaver.demo.shared.service;
+package com.batchweaver.demo.service;
 
 /**
  * Mock 邮件发送服务接口

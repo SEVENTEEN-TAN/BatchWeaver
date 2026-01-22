@@ -1,4 +1,4 @@
-package com.batchweaver.demo.config;
+package com.batchweaver.demo.jobs;
 
 import com.batchweaver.core.fileprocess.function.FooterParser;
 import com.batchweaver.core.fileprocess.function.FooterValidator;
@@ -7,10 +7,9 @@ import com.batchweaver.core.fileprocess.function.HeaderValidator;
 import com.batchweaver.core.fileprocess.model.FooterInfo;
 import com.batchweaver.core.fileprocess.model.HeaderInfo;
 import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
-import com.batchweaver.demo.shared.entity.ChunkUserInput;
-import com.batchweaver.demo.shared.entity.DemoUser;
-import com.batchweaver.core.fileprocess.template.FileImportJobTemplate;
-import com.batchweaver.demo.shared.entity.DemoUserInput;
+import com.batchweaver.demo.entity.ChunkUserInput;
+import com.batchweaver.demo.entity.DemoUser;
+import com.batchweaver.demo.entity.DemoUserInput;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -23,7 +22,6 @@ import com.batchweaver.core.fileprocess.reader.HeaderFooterAwareReader;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
-import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
