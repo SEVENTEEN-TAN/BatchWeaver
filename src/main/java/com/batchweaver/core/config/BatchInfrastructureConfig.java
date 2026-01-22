@@ -11,7 +11,6 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.batch.core.configuration.JobRegistry;
-import org.springframework.batch.core.configuration.support.JobRegistryBeanPostProcessor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -83,22 +82,12 @@ public class BatchInfrastructureConfig {
 
     /**
      * JobRegistry 配置（用于注册和查找 Job）
-     * JobOperator 需要通过 JobRegistry 来查找 Job
+     * 注意：Spring Batch 5.x 不再需要 JobRegistryBeanPostProcessor
+     * Job 会自动注册到 ApplicationContext
      */
     @Bean
     public JobRegistry jobRegistry() {
         return new MapJobRegistry();
-    }
-
-    /**
-     * JobRegistryBeanPostProcessor 配置
-     * 自动将所有 Job Bean 注册到 JobRegistry
-     */
-    @Bean
-    public JobRegistryBeanPostProcessor jobRegistryBeanPostProcessor(JobRegistry jobRegistry) {
-        JobRegistryBeanPostProcessor postProcessor = new JobRegistryBeanPostProcessor();
-        postProcessor.setJobRegistry(jobRegistry);
-        return postProcessor;
     }
 
     /**
