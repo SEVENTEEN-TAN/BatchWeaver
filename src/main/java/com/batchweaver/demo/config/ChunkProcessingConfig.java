@@ -1,20 +1,24 @@
 package com.batchweaver.demo.config;
 
+import com.batchweaver.demo.shared.entity.ChunkUserInput;
 import com.batchweaver.demo.shared.entity.DemoUser;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
-import org.springframework.batch.core.ChunkListener;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepExecutionListener;
+import com.batchweaver.demo.shared.service.Db2BusinessService;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
@@ -27,16 +31,18 @@ import org.springframework.transaction.PlatformTransactionManager;
 public class ChunkProcessingConfig {
 
     /**
-     * Chunk 模式 Job
+     * Chunk 模式 Job (带后置校验)
      */
     @Bean
     public Job chunkProcessingJob(
             JobRepository jobRepository,
-            Step chunkProcessingStep) {
+            Step chunkProcessingStep,
+            Step postValidationStep) {
 
         return new JobBuilder("chunkProcessingJob", jobRepository)
                 .incrementer(new RunIdIncrementer())
                 .start(chunkProcessingStep)
+                .next(postValidationStep)
                 .build();
     }
 
@@ -48,25 +54,80 @@ public class ChunkProcessingConfig {
     public Step chunkProcessingStep(
             JobRepository jobRepository,
             PlatformTransactionManager tm2,
-            ItemReader<DemoUserInput> largeFileReader,
-            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
+            ItemReader<ChunkUserInput> largeFileReader,
+            ItemProcessor<ChunkUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
             ItemWriter<DemoUser> db2DemoUserWriter,
             ChunkListener chunkExecutionListener,
             StepExecutionListener StepExecutionListenerImpl
     ) {
 
         return new StepBuilder("chunkProcessingStep", jobRepository)
-                .<DemoUserInput, DemoUser>chunk(100, tm2)
+                .<ChunkUserInput, DemoUser>chunk(10, tm2)
                 .reader(largeFileReader)
                 .processor(demoUserInputToDemoUserNoIdProcessor)
                 .writer(db2DemoUserWriter)
                 .faultTolerant()
-                .skipLimit(100)
-                .skip(org.springframework.batch.item.file.FlatFileParseException.class)
-                .skip(java.lang.NumberFormatException.class)
-                .skip(java.time.format.DateTimeParseException.class)
                 .listener(chunkExecutionListener)
                 .listener(StepExecutionListenerImpl)
                 .build();
+    }
+
+    /**
+     * 后置校验步骤：验证数据库记录数与 Footer 声明的数量是否一致
+     */
+    @Bean
+    public Step postValidationStep(
+            JobRepository jobRepository,
+            PlatformTransactionManager tm2,
+            Tasklet postValidationTasklet) {
+
+        return new StepBuilder("postValidationStep", jobRepository)
+                .tasklet(postValidationTasklet, tm2)
+                .build();
+    }
+
+    /**
+     * 后置校验 Tasklet
+     */
+    @Bean
+    public Tasklet postValidationTasklet(
+            JdbcTemplate jdbcTemplate2,
+            Db2BusinessService db2BusinessService) {
+
+        return (contribution, chunkContext) -> {
+            StepExecution stepExecution = chunkContext.getStepContext().getStepExecution();
+            JobExecution jobExecution = stepExecution.getJobExecution();
+            ExecutionContext jobContext = jobExecution.getExecutionContext();
+
+            // 获取 Footer 声明的记录数 (使用 HeaderFooterAwareReader 中定义的 key)
+            Long declaredCount = jobContext.getLong("declaredRecordCount", -1L);
+
+            if (declaredCount == -1L) {
+                // 没有 Footer 信息,跳过校验
+                System.out.println("[POST-VALIDATION] No footer information found, skipping validation");
+                return RepeatStatus.FINISHED;
+            }
+
+            // 查询数据库实际记录数
+            Long actualCount = jdbcTemplate2.queryForObject(
+                    "SELECT COUNT(*) FROM DEMO_USER", Long.class);
+
+            System.out.println("[POST-VALIDATION] Declared count: " + declaredCount +
+                             ", Actual DB count: " + actualCount);
+
+            if (!declaredCount.equals(actualCount)) {
+                // 数量不匹配,清理数据并失败
+                System.out.println("[POST-VALIDATION] Count mismatch! Rolling back data...");
+                jdbcTemplate2.execute("DELETE FROM DEMO_USER");
+                System.out.println("[POST-VALIDATION] Data rolled back successfully");
+
+                throw new IllegalStateException(
+                    "Post-validation failed: Footer declared " + declaredCount +
+                    " records, but database contains " + actualCount + " records. Data has been rolled back.");
+            }
+
+            System.out.println("[POST-VALIDATION] Validation passed");
+            return RepeatStatus.FINISHED;
+        };
     }
 }

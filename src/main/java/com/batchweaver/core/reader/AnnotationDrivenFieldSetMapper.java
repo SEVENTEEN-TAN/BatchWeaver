@@ -46,7 +46,7 @@ public class AnnotationDrivenFieldSetMapper<T> implements FieldSetMapper<T> {
                     }
 
                     // 类型转换
-                    Object convertedValue = convertValue(value, field.getType(), annotation.converter());
+                    Object convertedValue = convertValue(value, field.getType(), annotation);
 
                     // 设置字段值
                     field.setAccessible(true);
@@ -86,14 +86,14 @@ public class AnnotationDrivenFieldSetMapper<T> implements FieldSetMapper<T> {
     /**
      * 类型转换
      */
-    private Object convertValue(String value, Class<?> targetType, Class<? extends TypeConverter<?>> converterClass) throws Exception {
+    private Object convertValue(String value, Class<?> targetType, FileColumn annotation) throws Exception {
         if (value == null || value.isEmpty()) {
             return null;
         }
 
         // 使用自定义转换器
-        if (converterClass != NoOpConverter.class) {
-            TypeConverter<?> converter = converterClass.getDeclaredConstructor().newInstance();
+        if (annotation.converter() != NoOpConverter.class) {
+            TypeConverter<?> converter = annotation.converter().getDeclaredConstructor().newInstance();
             return converter.convert(value);
         }
 
@@ -109,7 +109,9 @@ public class AnnotationDrivenFieldSetMapper<T> implements FieldSetMapper<T> {
         } else if (targetType == BigDecimal.class) {
             return new BigDecimal(value);
         } else if (targetType == Date.class) {
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+            // 使用注解中的 format 属性，如果没有则使用默认格式
+            String dateFormat = annotation.format().isEmpty() ? "yyyyMMdd" : annotation.format();
+            SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
             return sdf.parse(value);
         } else if (targetType == Boolean.class || targetType == boolean.class) {
             return Boolean.valueOf(value);

@@ -33,12 +33,11 @@ public class Db2BusinessService {
      */
     @Transactional(transactionManager = "tm2", propagation = Propagation.REQUIRED)
     public void batchInsertUsers(List<DemoUser> users) {
-        String sql = "INSERT INTO DEMO_USER (id, name, email, birth_date) " +
-                "VALUES (:id, :name, :email, :birthDate)";
+        String sql = "INSERT INTO DEMO_USER (name, email, birth_date) " +
+                "VALUES (:name, :email, :birthDate)";
 
         SqlParameterSource[] batchParams = users.stream()
                 .map(user -> new MapSqlParameterSource()
-                        .addValue("id", user.getId())
                         .addValue("name", user.getName())
                         .addValue("email", user.getEmail())
                         .addValue("birthDate", user.getBirthDate()))

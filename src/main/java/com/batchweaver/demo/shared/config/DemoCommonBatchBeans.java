@@ -11,6 +11,7 @@ import com.batchweaver.core.fileprocess.model.HeaderInfo;
 import com.batchweaver.core.fileprocess.reader.FooterLineDetector;
 import com.batchweaver.core.fileprocess.reader.HeaderFooterAwareReader;
 import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
+import com.batchweaver.demo.shared.entity.ChunkUserInput;
 import com.batchweaver.demo.shared.entity.DemoUser;
 import com.batchweaver.demo.shared.service.Db2BusinessService;
 import com.batchweaver.demo.shared.service.Db3BusinessService;
@@ -45,7 +46,7 @@ public class DemoCommonBatchBeans {
      * 使用 HeaderFooterAwareReader 进行头尾校验
      */
     @Bean
-    public HeaderFooterAwareReader<DemoUserInput> largeFileReader() {
+    public HeaderFooterAwareReader<ChunkUserInput> largeFileReader() {
         // 文件资源
         FileSystemResource resource = new FileSystemResource("data/input/large_users.txt");
 
@@ -69,21 +70,16 @@ public class DemoCommonBatchBeans {
             return new FooterInfo(count);
         };
 
-        // Footer 校验器：数量匹配
-        FooterValidator footerValidator = (footer, actual) -> {
-            if (footer.getCount() != actual) {
-                throw new IllegalStateException("Large file footer validation failed: expected count=" + footer.getCount() + ", actual count=" + actual);
-            }
-        };
+        // Footer 校验器：不在这里校验,而是在 postValidationStep 中校验
+        // 这样可以在所有 chunk 提交后进行校验,如果失败可以回滚所有数据
+        FooterValidator footerValidator = null;
 
         // LineTokenizer：逗号分隔
         DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
         lineTokenizer.setDelimiter(",");
-        lineTokenizer.setNames("name", "age", "email", "birthDate");
 
-        // FieldSetMapper
-        BeanWrapperFieldSetMapper<DemoUserInput> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(DemoUserInput.class);
+        // FieldSetMapper：使用 AnnotationDrivenFieldSetMapper 支持日期格式转换
+        AnnotationDrivenFieldSetMapper<ChunkUserInput> fieldSetMapper = new AnnotationDrivenFieldSetMapper<>(ChunkUserInput.class);
 
         // 创建 HeaderFooterAwareReader
         return new HeaderFooterAwareReader<>(
@@ -307,10 +303,9 @@ public class DemoCommonBatchBeans {
     }
 
     @Bean()
-    public ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor() {
+    public ItemProcessor<ChunkUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor() {
         return input -> {
             DemoUser user = new DemoUser();
-            user.setId(null);
             user.setName(input.getName());
             user.setEmail(input.getEmail());
             user.setBirthDate(input.getBirthDate());

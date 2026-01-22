@@ -38,7 +38,7 @@ public class BatchWeaverApplication {
             forcedIdeDebug = parseBooleanNullable(System.getenv("BATCHWEAVER_IDE_DEBUG"));
         }
         boolean ideDebug = forcedIdeDebug != null ? forcedIdeDebug : isIdeEnvironment();
-        String jobName = "conditionalFlowJob";
+        String jobName = "chunkProcessingJob";
         String jobid = "";
         String str = "";
 
