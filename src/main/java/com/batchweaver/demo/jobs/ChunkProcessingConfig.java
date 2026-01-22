@@ -1,5 +1,6 @@
 package com.batchweaver.demo.jobs;
 
+import com.batchweaver.core.fileprocess.reader.HeaderFooterAwareReader;
 import com.batchweaver.demo.entity.ChunkUserInput;
 import com.batchweaver.demo.entity.DemoUser;
 import com.batchweaver.demo.service.Db2BusinessService;
@@ -14,6 +15,7 @@ import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -51,8 +53,8 @@ public class ChunkProcessingConfig {
     @Bean
     public Step chunkProcessingStep(
             JobRepository jobRepository,
-            PlatformTransactionManager tm2,
-            ItemReader<ChunkUserInput> largeFileReader,
+            @Qualifier("tm2") PlatformTransactionManager tm2,
+            HeaderFooterAwareReader<ChunkUserInput> largeFileReader,
             ItemProcessor<ChunkUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
             ItemWriter<DemoUser> db2DemoUserWriter,
             ChunkListener chunkExecutionListener,
@@ -67,6 +69,7 @@ public class ChunkProcessingConfig {
                 .faultTolerant()
                 .listener(chunkExecutionListener)
                 .listener(StepExecutionListenerImpl)
+                .listener(largeFileReader)  // 注册 Reader 为 listener，使 @BeforeStep 生效
                 .build();
     }
 
@@ -76,7 +79,7 @@ public class ChunkProcessingConfig {
     @Bean
     public Step postValidationStep(
             JobRepository jobRepository,
-            PlatformTransactionManager tm2,
+            @Qualifier("tm2") PlatformTransactionManager tm2,
             Tasklet postValidationTasklet) {
 
         return new StepBuilder("postValidationStep", jobRepository)
@@ -89,7 +92,7 @@ public class ChunkProcessingConfig {
      */
     @Bean
     public Tasklet postValidationTasklet(
-            JdbcTemplate jdbcTemplate2,
+            @Qualifier("jdbcTemplate2") JdbcTemplate jdbcTemplate2,
             Db2BusinessService db2BusinessService) {
 
         return (contribution, chunkContext) -> {
