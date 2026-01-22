@@ -1,6 +1,7 @@
 package com.batchweaver.demo.jobs;
 
 import com.batchweaver.core.factory.BatchReaderFactory;
+import com.batchweaver.core.transaction.TransactionLogger;
 import com.batchweaver.demo.entity.DemoUser;
 import com.batchweaver.demo.service.Db2BusinessService;
 import com.batchweaver.demo.service.Db3BusinessService;
@@ -30,6 +31,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import javax.sql.DataSource;
 import java.time.LocalDate;
@@ -136,8 +138,18 @@ public class ComplexWorkflowConfig {
 
             return new StepBuilder("step2SyncToDb3", jobRepository)
                     .tasklet((contribution, chunkContext) -> {
+                        // 记录事务开始
+                        TransactionLogger.TransactionContext txContext = TransactionLogger.logTransactionStart(
+                                "step2SyncToDb3", new DefaultTransactionDefinition());
+                        TransactionLogger.registerTransactionSynchronization(txContext);
+
+                        System.out.println("[STEP2] Starting DB2 -> DB3 sync...");
                         List<DemoUser> users = db2BusinessService.getAllUsers();
+                        TransactionLogger.logSqlExecution("SELECT * FROM DEMO_USER (DB2)");
+
                         db3BusinessService.batchInsertUsers(users);
+                        TransactionLogger.logSqlExecution("INSERT INTO DEMO_USER (DB3), count: " + users.size());
+
                         System.out.println("[STEP2] Synced " + users.size() + " users from DB2 to DB3");
                         return RepeatStatus.FINISHED;
                     }, tm3)
@@ -158,8 +170,18 @@ public class ComplexWorkflowConfig {
 
             return new StepBuilder("step3SyncToDb4", jobRepository)
                     .tasklet((contribution, chunkContext) -> {
+                        // 记录事务开始
+                        TransactionLogger.TransactionContext txContext = TransactionLogger.logTransactionStart(
+                                "step3SyncToDb4", new DefaultTransactionDefinition());
+                        TransactionLogger.registerTransactionSynchronization(txContext);
+
+                        System.out.println("[STEP3] Starting DB2 -> DB4 sync...");
                         List<DemoUser> users = db2BusinessService.getAllUsers();
+                        TransactionLogger.logSqlExecution("SELECT * FROM DEMO_USER (DB2)");
+
                         db4BusinessService.batchInsertUsers(users);
+                        TransactionLogger.logSqlExecution("INSERT INTO DEMO_USER (DB4), count: " + users.size());
+
                         System.out.println("[STEP3] Synced " + users.size() + " users from DB2 to DB4");
                         return RepeatStatus.FINISHED;
                     }, tm4)
