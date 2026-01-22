@@ -6,6 +6,8 @@ import com.batchweaver.core.fileprocess.function.HeaderParser;
 import com.batchweaver.core.fileprocess.function.HeaderValidator;
 import com.batchweaver.core.fileprocess.model.FooterInfo;
 import com.batchweaver.core.fileprocess.model.HeaderInfo;
+import com.batchweaver.core.reader.AnnotationDrivenFieldSetMapper;
+import com.batchweaver.demo.shared.entity.ChunkUserInput;
 import com.batchweaver.demo.shared.entity.DemoUser;
 import com.batchweaver.core.fileprocess.template.FileImportJobTemplate;
 import com.batchweaver.demo.shared.entity.DemoUserInput;
@@ -46,19 +48,41 @@ import java.time.format.DateTimeParseException;
 public class FileImportConfig {
 
     // =============================================================
+    // Master Job: 串行执行所有格式导入
+    // =============================================================
+
+    /**
+     * Master 导入 Job - 串行执行所有格式
+     * <p>
+     * 执行顺序：format1 -> format2 -> format3
+     */
+    @Bean
+    public Job masterImportJob(
+            JobRepository jobRepository,
+            Step format1ImportStep,
+            Step format2ImportStep,
+            Step format3ImportStep) {
+
+        return new JobBuilder("masterImportJob", jobRepository)
+                .incrementer(new RunIdIncrementer())
+                .start(format1ImportStep)
+                .next(format2ImportStep)
+                .next(format3ImportStep)
+                .build();
+    }
+
+    // =============================================================
     // Format1: yyyyMMdd + 纯数字 Footer
     // =============================================================
 
     /**
-     * Format1 导入 Job
-     * <p>
-     * 格式：yyyyMMdd + 数据行 + count
+     * Format1 导入 Step
      */
     @Bean
-    public Job format1ImportJob(
+    public Step format1ImportStep(
             JobRepository jobRepository,
             PlatformTransactionManager tm2,
-            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
+            ItemProcessor<ChunkUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
             ItemWriter<DemoUser> db2DemoUserWriter) {
 
         Resource resource = new FileSystemResource("data/input/format1_users.txt");
@@ -71,10 +95,9 @@ public class FileImportConfig {
 
         // Header 校验：日期必须匹配（或使用 Job 参数）
         HeaderValidator headerValidator = header -> {
-            // 实际使用中可通过 Job 参数传入期望日期
             LocalDate today = LocalDate.now();
             if (!header.getDate().equals(today)) {
-                System.out.println("Header date mismatch: expected=" + today + ", actual=" + header.getDate());
+                System.out.println("[Format1] Header date mismatch: expected=" + today + ", actual=" + header.getDate());
             }
         };
 
@@ -87,11 +110,9 @@ public class FileImportConfig {
         // Footer 校验：数量匹配
         FooterValidator footerValidator = (footer, actual) -> {
             if (footer.getCount() != actual) {
-                throw new IllegalStateException("Count mismatch: expected=" + footer.getCount() + ", actual=" + actual);
+                throw new IllegalStateException("[Format1] Count mismatch: expected=" + footer.getCount() + ", actual=" + actual);
             }
         };
-
-        FileImportJobTemplate template = new FileImportJobTemplate();
 
         // LineTokenizer
         DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
@@ -99,11 +120,11 @@ public class FileImportConfig {
         lineTokenizer.setNames("name", "age", "email", "birthDate");
 
         // FieldSetMapper
-        BeanWrapperFieldSetMapper<DemoUserInput> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(DemoUserInput.class);
+        AnnotationDrivenFieldSetMapper<ChunkUserInput> fieldSetMapper = new AnnotationDrivenFieldSetMapper<>(ChunkUserInput.class);
 
-        // Reader - 使用 HeaderFooterAwareReader
-        HeaderFooterAwareReader<DemoUserInput> reader = new HeaderFooterAwareReader<>(
+
+        // Reader
+        HeaderFooterAwareReader<ChunkUserInput> reader = new HeaderFooterAwareReader<>(
                 resource,
                 headerParser,
                 headerValidator,
@@ -113,22 +134,30 @@ public class FileImportConfig {
                 fieldSetMapper
         );
 
-        // 构建 Job 定义
-        FileImportJobTemplate.FileImportJobDefinition<DemoUserInput, DemoUser> definition =
-                FileImportJobTemplate.FileImportJobDefinition.<DemoUserInput, DemoUser>builder()
-                        .jobName("format1ImportJob")
-                        .stepName("format1ImportStep")
-                        .jobRepository(jobRepository)
-                        .transactionManager(tm2)
-                        .reader(reader)
-                        .processor(demoUserInputToDemoUserNoIdProcessor)
-                        .writer(db2DemoUserWriter)
-                        .chunkSize(100)
-                        .skipLimit(100)
-                        .retryLimit(3)
-                        .build();
+        return new StepBuilder("format1ImportStep", jobRepository)
+                .<ChunkUserInput, DemoUser>chunk(100, tm2)
+                .reader(reader)
+                .processor(demoUserInputToDemoUserNoIdProcessor)
+                .writer(db2DemoUserWriter)
+                .faultTolerant()
+                .skipLimit(100)
+                .skip(FlatFileParseException.class)
+                .skip(NumberFormatException.class)
+                .build();
+    }
 
-        return template.buildJob(definition);
+    /**
+     * Format1 导入 Job (独立执行)
+     */
+    @Bean
+    public Job format1ImportJob(
+            JobRepository jobRepository,
+            Step format1ImportStep) {
+
+        return new JobBuilder("format1ImportJob", jobRepository)
+                .incrementer(new RunIdIncrementer())
+                .start(format1ImportStep)
+                .build();
     }
 
     // =============================================================
@@ -136,15 +165,13 @@ public class FileImportConfig {
     // =============================================================
 
     /**
-     * Format2 导入 Job
-     * <p>
-     * 格式：MMddyyyy + 数据行 + R00003
+     * Format2 导入 Step
      */
     @Bean
-    public Job format2ImportJob(
+    public Step format2ImportStep(
             JobRepository jobRepository,
             PlatformTransactionManager tm2,
-            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserCopyIdProcessor,
+            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
             ItemWriter<DemoUser> db2DemoUserWriter) {
 
         Resource resource = new FileSystemResource("data/input/format2_users.txt");
@@ -165,22 +192,19 @@ public class FileImportConfig {
         // Footer 校验：数量匹配
         FooterValidator footerValidator = (footer, actual) -> {
             if (footer.getCount() != actual) {
-                throw new IllegalStateException("Count mismatch: expected=" + footer.getCount() + ", actual=" + actual);
+                throw new IllegalStateException("[Format2] Count mismatch: expected=" + footer.getCount() + ", actual=" + actual);
             }
         };
-
-        FileImportJobTemplate template = new FileImportJobTemplate();
 
         // LineTokenizer
         DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
         lineTokenizer.setDelimiter(",");
-        lineTokenizer.setNames("name", "age", "email", "birthDate");
+        lineTokenizer.setNames("id","name", "age", "email", "birthDate");
 
         // FieldSetMapper
-        BeanWrapperFieldSetMapper<DemoUserInput> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(DemoUserInput.class);
+        AnnotationDrivenFieldSetMapper<DemoUserInput> fieldSetMapper = new AnnotationDrivenFieldSetMapper<>(DemoUserInput.class);
 
-        // Reader - 使用 HeaderFooterAwareReader
+        // Reader
         HeaderFooterAwareReader<DemoUserInput> reader = new HeaderFooterAwareReader<>(
                 resource,
                 headerParser,
@@ -191,22 +215,30 @@ public class FileImportConfig {
                 fieldSetMapper
         );
 
-        // 构建 Job 定义
-        FileImportJobTemplate.FileImportJobDefinition<DemoUserInput, DemoUser> definition =
-                FileImportJobTemplate.FileImportJobDefinition.<DemoUserInput, DemoUser>builder()
-                        .jobName("format2ImportJob")
-                        .stepName("format2ImportStep")
-                        .jobRepository(jobRepository)
-                        .transactionManager(tm2)
-                        .reader(reader)
-                        .processor(demoUserInputToDemoUserCopyIdProcessor)
-                        .writer(db2DemoUserWriter)
-                        .chunkSize(100)
-                        .skipLimit(100)
-                        .retryLimit(3)
-                        .build();
+        return new StepBuilder("format2ImportStep", jobRepository)
+                .<DemoUserInput, DemoUser>chunk(100, tm2)
+                .reader(reader)
+                .processor(demoUserInputToDemoUserNoIdProcessor)
+                .writer(db2DemoUserWriter)
+                .faultTolerant()
+                .skipLimit(100)
+                .skip(FlatFileParseException.class)
+                .skip(NumberFormatException.class)
+                .build();
+    }
 
-        return template.buildJob(definition);
+    /**
+     * Format2 导入 Job (独立执行)
+     */
+    @Bean
+    public Job format2ImportJob(
+            JobRepository jobRepository,
+            Step format2ImportStep) {
+
+        return new JobBuilder("format2ImportJob", jobRepository)
+                .incrementer(new RunIdIncrementer())
+                .start(format2ImportStep)
+                .build();
     }
 
     // =============================================================
@@ -214,34 +246,37 @@ public class FileImportConfig {
     // =============================================================
 
     /**
-     * Format3 导入 Job
-     * <p>
-     * 格式：纯数据行（无 Header/Footer）
+     * Format3 导入 Step
      */
     @Bean
-    public Job format3ImportJob(
+    public Step format3ImportStep(
             JobRepository jobRepository,
             PlatformTransactionManager tm2,
-            ItemProcessor<DemoUserInput, DemoUser> demoUserInputToDemoUserCopyIdProcessor,
+            ItemProcessor<ChunkUserInput, DemoUser> demoUserInputToDemoUserNoIdProcessor,
             ItemWriter<DemoUser> db2DemoUserWriter) {
 
         Resource resource = new FileSystemResource("data/input/format3_users.txt");
 
+        // LineTokenizer
+        DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
+        lineTokenizer.setDelimiter(",");
+        lineTokenizer.setNames("name", "age", "email", "birthDate");
+
+        // FieldSetMapper
+        AnnotationDrivenFieldSetMapper<ChunkUserInput> fieldSetMapper = new AnnotationDrivenFieldSetMapper<>(ChunkUserInput.class);
+
         // Reader
-        FlatFileItemReader<DemoUserInput> reader = new FlatFileItemReaderBuilder<DemoUserInput>()
+        FlatFileItemReader<ChunkUserInput> reader = new FlatFileItemReaderBuilder<ChunkUserInput>()
                 .name("format3Reader")
                 .resource(resource)
-                .delimited()
-                .delimiter(",")
-                .names("name", "age", "email", "birthDate")
-                .targetType(DemoUserInput.class)
+                .lineTokenizer(lineTokenizer)
+                .fieldSetMapper(fieldSetMapper)
                 .build();
 
-        // 构建 Step
-        Step step = new StepBuilder("format3ImportStep", jobRepository)
-                .<DemoUserInput, DemoUser>chunk(100, tm2)
+        return new StepBuilder("format3ImportStep", jobRepository)
+                .<ChunkUserInput, DemoUser>chunk(100, tm2)
                 .reader(reader)
-                .processor(demoUserInputToDemoUserCopyIdProcessor)
+                .processor(demoUserInputToDemoUserNoIdProcessor)
                 .writer(db2DemoUserWriter)
                 .faultTolerant()
                 .skipLimit(100)
@@ -249,11 +284,19 @@ public class FileImportConfig {
                 .skip(NumberFormatException.class)
                 .skip(DateTimeParseException.class)
                 .build();
+    }
 
-        // 构建 Job
+    /**
+     * Format3 导入 Job (独立执行)
+     */
+    @Bean
+    public Job format3ImportJob(
+            JobRepository jobRepository,
+            Step format3ImportStep) {
+
         return new JobBuilder("format3ImportJob", jobRepository)
                 .incrementer(new RunIdIncrementer())
-                .start(step)
+                .start(format3ImportStep)
                 .build();
     }
 
