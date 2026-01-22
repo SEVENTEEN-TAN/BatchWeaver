@@ -31,13 +31,23 @@ public class SharedListenersConfig {
         return new ChunkListener() {
             @Override
             public void beforeChunk(ChunkContext context) {
+                // 获取当前 Step 的统计信息
+                StepExecution stepExecution = context.getStepContext().getStepExecution();
+                long readCount = stepExecution.getReadCount();
+                long writeCount = stepExecution.getWriteCount();
+
                 System.out.println("========================================");
-                System.out.println("[CHUNK] Starting chunk: " + context.getAttribute("chunk.count"));
+                System.out.println("[CHUNK] Starting chunk (Read so far: " + readCount + ", Written so far: " + writeCount + ")");
             }
 
             @Override
             public void afterChunk(ChunkContext context) {
-                System.out.println("[CHUNK] Chunk completed");
+                // 获取更新后的统计信息
+                StepExecution stepExecution = context.getStepContext().getStepExecution();
+                long readCount = stepExecution.getReadCount();
+                long writeCount = stepExecution.getWriteCount();
+
+                System.out.println("[CHUNK] Chunk completed (Total Read: " + readCount + ", Total Written: " + writeCount + ")");
                 System.out.println("========================================");
             }
         };
