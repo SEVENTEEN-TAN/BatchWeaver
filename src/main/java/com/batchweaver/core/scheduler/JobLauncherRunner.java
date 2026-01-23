@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -101,6 +102,9 @@ public class JobLauncherRunner implements ApplicationRunner {
 
     @Autowired
     private JobRegistry jobRegistry;
+
+    @Autowired
+    private ApplicationContext applicationContext;
 
     @Autowired
     @Qualifier("dataSource1")
@@ -401,12 +405,13 @@ public class JobLauncherRunner implements ApplicationRunner {
     }
 
     /**
-     * 根据 Job 名称从 JobRegistry 查找 Job
+     * 根据 Job 名称从 ApplicationContext 查找 Job
+     * Spring Batch 5.2+ 推荐直接从 ApplicationContext 获取 Job Bean
      */
     private Job findJobByName(String jobName) {
         try {
-            return jobRegistry.getJob(jobName);
-        } catch (NoSuchJobException e) {
+            return applicationContext.getBean(jobName, Job.class);
+        } catch (Exception e) {
             return null;
         }
     }
@@ -479,19 +484,8 @@ public class JobLauncherRunner implements ApplicationRunner {
      */
     private void printAvailableJobs() {
         log.info("Available Jobs:");
-        try {
-            jobRegistry.getJobNames().forEach(name ->
+        // 从 ApplicationContext 获取所有 Job Bean
+        applicationContext.getBeansOfType(Job.class).keySet().forEach(name ->
                 log.info("  - {}", name));
-        } catch (Exception e) {
-            // 如果 JobRegistry 未初始化，显示静态列表
-            log.info("  - conditionalFlowJob     # Job1: 条件流程测试");
-            log.info("  - chunkProcessingJob     # Job2: 批处理模式测试");
-            log.info("  - format1ImportJob       # Job3: 格式1文件导入");
-            log.info("  - format2ImportJob       # Job3: 格式2文件导入");
-            log.info("  - format3ImportJob       # Job3: 格式3文件导入");
-            log.info("  - format1ExportJob       # Job4: 格式1文件导出");
-            log.info("  - format2ExportJob       # Job4: 格式2文件导出");
-            log.info("  - complexWorkflowJob     # Job5: 复杂工作流测试");
-        }
     }
 }

@@ -82,8 +82,7 @@ public class BatchInfrastructureConfig {
 
     /**
      * JobRegistry 配置（用于注册和查找 Job）
-     * 注意：Spring Batch 5.x 不再需要 JobRegistryBeanPostProcessor
-     * Job 会自动注册到 ApplicationContext
+     * 注意：Spring Batch 5.2+ 推荐直接从 ApplicationContext 获取 Job
      */
     @Bean
     public JobRegistry jobRegistry() {
