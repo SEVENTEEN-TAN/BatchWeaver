@@ -9,26 +9,8 @@ IF OBJECT_ID('BATCH_JOB_EXECUTION_PARAMS', 'U') IS NOT NULL DROP TABLE BATCH_JOB
 IF OBJECT_ID('BATCH_JOB_EXECUTION', 'U') IS NOT NULL DROP TABLE BATCH_JOB_EXECUTION;
 IF OBJECT_ID('BATCH_JOB_INSTANCE', 'U') IS NOT NULL DROP TABLE BATCH_JOB_INSTANCE;
 
--- Drop existing sequences if they exist
-IF OBJECT_ID('BATCH_STEP_EXECUTION_SEQ', 'SO') IS NOT NULL DROP SEQUENCE BATCH_STEP_EXECUTION_SEQ;
-IF OBJECT_ID('BATCH_JOB_EXECUTION_SEQ', 'SO') IS NOT NULL DROP SEQUENCE BATCH_JOB_EXECUTION_SEQ;
-IF OBJECT_ID('BATCH_JOB_SEQ', 'SO') IS NOT NULL DROP SEQUENCE BATCH_JOB_SEQ;
-GO
-
--- Create timestamp-based sequences
--- Using Unix timestamp (milliseconds since 1970-01-01) as starting point
--- Format: 1737173745123 (13 digits)
-DECLARE @timestamp BIGINT = DATEDIFF_BIG(MILLISECOND, '1970-01-01', GETUTCDATE());
-
--- Job Instance ID Sequence (starts from current timestamp)
-EXEC('CREATE SEQUENCE BATCH_JOB_SEQ START WITH ' + @timestamp + ' INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807');
-
--- Job Execution ID Sequence (starts from current timestamp)
-EXEC('CREATE SEQUENCE BATCH_JOB_EXECUTION_SEQ START WITH ' + @timestamp + ' INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807');
-
--- Step Execution ID Sequence (starts from current timestamp)
-EXEC('CREATE SEQUENCE BATCH_STEP_EXECUTION_SEQ START WITH ' + @timestamp + ' INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807');
-GO
+-- Note: ID generation is handled by Hutool Snowflake algorithm in the application
+-- Database sequences are NOT used for BATCH_JOB_SEQ, BATCH_JOB_EXECUTION_SEQ, BATCH_STEP_EXECUTION_SEQ
 
 CREATE TABLE BATCH_JOB_INSTANCE  (
                                      JOB_INSTANCE_ID BIGINT  NOT NULL PRIMARY KEY ,
@@ -42,13 +24,13 @@ CREATE TABLE BATCH_JOB_EXECUTION  (
                                       JOB_EXECUTION_ID BIGINT  NOT NULL PRIMARY KEY ,
                                       VERSION BIGINT  ,
                                       JOB_INSTANCE_ID BIGINT NOT NULL,
-                                      CREATE_TIME DATETIME NOT NULL,
-                                      START_TIME DATETIME DEFAULT NULL ,
-                                      END_TIME DATETIME DEFAULT NULL ,
+                                      CREATE_TIME DATETIME2 NOT NULL,
+                                      START_TIME DATETIME2 DEFAULT NULL ,
+                                      END_TIME DATETIME2 DEFAULT NULL ,
                                       STATUS NVARCHAR(10) ,
                                       EXIT_CODE NVARCHAR(2500) ,
                                       EXIT_MESSAGE NVARCHAR(2500) ,
-                                      LAST_UPDATED DATETIME,
+                                      LAST_UPDATED DATETIME2,
                                       CONSTRAINT JOB_INST_EXEC_FK FOREIGN KEY (JOB_INSTANCE_ID)
                                           REFERENCES BATCH_JOB_INSTANCE (JOB_INSTANCE_ID)
 ) ;
@@ -68,9 +50,9 @@ CREATE TABLE BATCH_STEP_EXECUTION  (
                                        VERSION BIGINT NOT NULL,
                                        STEP_NAME NVARCHAR(100) NOT NULL,
                                        JOB_EXECUTION_ID BIGINT NOT NULL,
-                                       CREATE_TIME DATETIME NOT NULL,
-                                       START_TIME DATETIME DEFAULT NULL ,
-                                       END_TIME DATETIME DEFAULT NULL ,
+                                       CREATE_TIME DATETIME2 NOT NULL,
+                                       START_TIME DATETIME2 DEFAULT NULL ,
+                                       END_TIME DATETIME2 DEFAULT NULL ,
                                        STATUS NVARCHAR(10) ,
                                        COMMIT_COUNT BIGINT ,
                                        READ_COUNT BIGINT ,
@@ -82,7 +64,7 @@ CREATE TABLE BATCH_STEP_EXECUTION  (
                                        ROLLBACK_COUNT BIGINT ,
                                        EXIT_CODE NVARCHAR(2500) ,
                                        EXIT_MESSAGE NVARCHAR(2500) ,
-                                       LAST_UPDATED DATETIME,
+                                       LAST_UPDATED DATETIME2,
                                        CONSTRAINT JOB_EXEC_STEP_FK FOREIGN KEY (JOB_EXECUTION_ID)
                                            REFERENCES BATCH_JOB_EXECUTION (JOB_EXECUTION_ID)
 ) ;

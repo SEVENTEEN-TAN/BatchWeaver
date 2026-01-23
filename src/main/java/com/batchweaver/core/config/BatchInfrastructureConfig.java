@@ -1,5 +1,7 @@
 package com.batchweaver.core.config;
 
+import com.batchweaver.core.id.TimestampIncrementer;
+import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.configuration.support.MapJobRegistry;
 import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.explore.support.JobExplorerFactoryBean;
@@ -9,55 +11,79 @@ import org.springframework.batch.core.launch.support.SimpleJobOperator;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
+import org.springframework.batch.item.database.support.DataFieldMaxValueIncrementerFactory;
+import org.springframework.batch.item.database.support.DefaultDataFieldMaxValueIncrementerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.support.incrementer.DataFieldMaxValueIncrementer;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
-/**
- * Batch 基础设施配置 - 元数据事务独立配置
- * <p>
- * 核心设计：JobRepository 绑定 tm1Meta（元数据专用事务管理器）
- * 确保元数据事务独立于业务事务，失败时元数据也能提交
- * <p>
- * 事务隔离保证：
- * - JobRepository 使用 tm1Meta 管理元数据表（BATCH_JOB_EXECUTION、BATCH_STEP_EXECUTION 等）
- * - Step 使用 tm1/tm2/tm3/tm4 管理业务数据（必须显式指定）
- * - 业务失败时：业务事务回滚，tm1Meta 提交 FAILED 状态
- * <p>
- * 注意：不使用 @EnableBatchProcessing，改为显式定义所有基础设施 Bean，
- * 避免 Bean 重复注册冲突，并确保数据源和事务管理器正确绑定。
- */
 @Configuration
 public class BatchInfrastructureConfig {
 
-    /**
-     * 关键配置：JobRepository 绑定 tm1Meta（元数据专用事务管理器）
-     * 确保元数据事务独立于业务事务，失败时元数据也能提交
-     *
-     * @param dataSource1 db1 数据源（元数据表所在数据库）
-     * @param tm1Meta     元数据专用事务管理器（标记 @Primary）
-     * @return JobRepository
-     */
+    // Spring Batch 默认会用这三个“incrementerName”去取号
+    private static final String JOB_SEQ = "BATCH_JOB_SEQ";
+    private static final String JOB_EXECUTION_SEQ = "BATCH_JOB_EXECUTION_SEQ";
+    private static final String STEP_EXECUTION_SEQ = "BATCH_STEP_EXECUTION_SEQ";
+
     @Bean
-    public JobRepository jobRepository(@Qualifier("dataSource1") DataSource dataSource1,
-                                       PlatformTransactionManager tm1Meta) throws Exception {
+    public JobRepository jobRepository(
+            @Qualifier("dataSource1") DataSource dataSource1,
+            @Qualifier("tm1Meta") PlatformTransactionManager tm1Meta
+    ) throws Exception {
+
+        // 1) 时间戳 ID 生成器
+        DataFieldMaxValueIncrementer timestampInc = new TimestampIncrementer();
+
+        // 2) 默认工厂（保留 Spring Batch 对 databaseType 的支持校验 + 兜底实现）
+        DefaultDataFieldMaxValueIncrementerFactory delegate =
+                new DefaultDataFieldMaxValueIncrementerFactory(dataSource1);
+
+        // 3) 自定义工厂：只替换 3 个 Batch 元数据主键的取号逻辑，其他走默认
+        DataFieldMaxValueIncrementerFactory incrementerFactory = new DataFieldMaxValueIncrementerFactory() {
+            @Override
+            public DataFieldMaxValueIncrementer getIncrementer(String databaseType, String incrementerName) {
+                if (incrementerName == null) {
+                    return delegate.getIncrementer(databaseType, null);
+                }
+                String name = incrementerName.trim();
+                if (JOB_SEQ.equalsIgnoreCase(name)
+                        || JOB_EXECUTION_SEQ.equalsIgnoreCase(name)
+                        || STEP_EXECUTION_SEQ.equalsIgnoreCase(name)) {
+                    return timestampInc;
+                }
+                return delegate.getIncrementer(databaseType, incrementerName);
+            }
+
+            @Override
+            public String[] getSupportedIncrementerTypes() {
+                return delegate.getSupportedIncrementerTypes();
+            }
+
+            @Override
+            public boolean isSupportedIncrementerType(String databaseType) {
+                return delegate.isSupportedIncrementerType(databaseType);
+            }
+        };
+
+        // 4) JobRepositoryFactoryBean：注意顺序 —— 全部 set 完，再 afterPropertiesSet() 一次
         JobRepositoryFactoryBean factory = new JobRepositoryFactoryBean();
-        factory.setDataSource(dataSource1);       // ✅ 使用 db1 数据源
-        factory.setTransactionManager(tm1Meta);   // 绑定 tm1Meta，确保元数据事务独立
+        factory.setDataSource(dataSource1);
+        factory.setTransactionManager(tm1Meta);
         factory.setIsolationLevelForCreate("ISOLATION_READ_COMMITTED");
-        factory.setTablePrefix("BATCH_");         // Spring Batch 元数据表前缀
-        factory.setDatabaseType("SQLSERVER");     // SQL Server 数据库类型
+        factory.setTablePrefix("BATCH_");
+        factory.setDatabaseType("SQLSERVER");
+
+        // ✅ 关键：一定要在 afterPropertiesSet() 之前设置
+        factory.setIncrementerFactory(incrementerFactory);
+
         factory.afterPropertiesSet();
         return factory.getObject();
     }
 
-    /**
-     * JobLauncher 配置（使用上面的 JobRepository）
-     */
     @Bean
     public JobLauncher jobLauncher(JobRepository jobRepository) throws Exception {
         TaskExecutorJobLauncher jobLauncher = new TaskExecutorJobLauncher();
@@ -66,15 +92,14 @@ public class BatchInfrastructureConfig {
         return jobLauncher;
     }
 
-    /**
-     * JobExplorer 配置（用于查询批处理执行历史）
-     */
     @Bean
-    public JobExplorer jobExplorer(@Qualifier("dataSource1") DataSource dataSource1,
-                                   PlatformTransactionManager tm1Meta) throws Exception {
+    public JobExplorer jobExplorer(
+            @Qualifier("dataSource1") DataSource dataSource1,
+            @Qualifier("tm1Meta") PlatformTransactionManager tm1Meta
+    ) throws Exception {
         JobExplorerFactoryBean factory = new JobExplorerFactoryBean();
         factory.setDataSource(dataSource1);
-        factory.setTransactionManager(tm1Meta);  // Spring Batch 5.x 必需设置 TransactionManager
+        factory.setTransactionManager(tm1Meta);
         factory.setTablePrefix("BATCH_");
         factory.afterPropertiesSet();
         return factory.getObject();
@@ -94,8 +119,12 @@ public class BatchInfrastructureConfig {
      * 用于断点续传场景
      */
     @Bean
-    public JobOperator jobOperator(JobExplorer jobExplorer, JobRepository jobRepository,
-                                    JobRegistry jobRegistry, JobLauncher jobLauncher) throws Exception {
+    public JobOperator jobOperator(
+            JobExplorer jobExplorer,
+            JobRepository jobRepository,
+            JobRegistry jobRegistry,
+            JobLauncher jobLauncher
+    ) {
         SimpleJobOperator jobOperator = new SimpleJobOperator();
         jobOperator.setJobExplorer(jobExplorer);
         jobOperator.setJobRepository(jobRepository);
